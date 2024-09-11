@@ -1,4 +1,5 @@
 #include "MyBugAlgorithm.h"
+#include <algorithm>
 #include <limits>
 
 amp::Path2D MyBugAlgorithm::plan(const amp::Problem2D& problem) {
@@ -36,6 +37,7 @@ amp::Path2D MyBugAlgorithm::plan(const amp::Problem2D& problem) {
     int i = 0;
     Eigen::Vector2d qLi = q;
     amp::Obstacle2D temp = get_nearest_obstacle(q,problem);
+    int doWhileCounter = 0;
 
     while (true) {
         // WORKING - moves bug towards goal
@@ -44,10 +46,11 @@ amp::Path2D MyBugAlgorithm::plan(const amp::Problem2D& problem) {
             Eigen::Vector2d direction = (problem.q_goal - q).normalized();
             q += direction * 0.1; 
             path.waypoints.push_back(q);
-            std::cout << "last points " << q.x() << " " << q.y() << std::endl;
-
+            // std::cout << "last points " << q.x() << " " << q.y() << std::endl;
+            // std::cout << " in first while loop " << std::endl;
             if (distance_to_goal(q) <= 0.1) {
                 // Goal reached
+                std::cout << "returning from if 1" << std::endl;
                 path.waypoints.push_back(problem.q_goal);
                 return path;
             }
@@ -61,25 +64,29 @@ amp::Path2D MyBugAlgorithm::plan(const amp::Problem2D& problem) {
 
         // NOT WORKING - follow boundary
         if (obstacle_detected(q)) {
+            std::cout << " obstacle detected " << std::endl;
             Eigen::Vector2d qHi = q; // hit point
             Eigen::Vector2d qLi_temp = qLi;
             double min_distance_to_goal = distance_to_goal(qLi);
             bool qHi_reencountered = false;
             int count = 0;
             do {
+                doWhileCounter++;
+                std::cout << doWhileCounter << std::endl;
                 count++;
-                if ( count > 20) {
-                    std::cout << "returning" << std::endl;
-                    path.waypoints.push_back(problem.q_goal);
-                    return path;    
-                }
+                // if ( count > 20) {
+                //     std::cout << "returning" << std::endl;
+                //     path.waypoints.push_back(problem.q_goal);
+                //     return path;    
+                // }
                 // q = follow_boundary(q, qHi, problem.obstacles);
-                amp::Obstacle2D tempOb2 = get_nearest_obstacle(problem.q_init, problem);
+                amp::Obstacle2D tempOb2 = get_nearest_obstacle(q, problem);
                 std::vector<Eigen::Vector2d> closestVerts = get_nearest_vertex(q, tempOb2, problem.q_goal);
+
                 for(auto point : closestVerts)
                 {
                     path.waypoints.push_back(point);
-                    std::cout << "last points " << path.waypoints.back().x() << " " << path.waypoints.back().y() << std::endl;
+                    // std::cout << "last points " << path.waypoints.back().x() << " " << path.waypoints.back().y() << std::endl;
 
                 }
 
@@ -88,15 +95,15 @@ amp::Path2D MyBugAlgorithm::plan(const amp::Problem2D& problem) {
                 // path.waypoints.push_back(q);
                 // std::cout << "last points " << path.waypoints.back().x() << " " << path.waypoints.back().y() << std::endl;
 
-                double current_distance = distance_to_goal(q);
-                if (current_distance < min_distance_to_goal) {
-                    qLi_temp = q;
-                    min_distance_to_goal = current_distance;
-                }
+                // double current_distance = distance_to_goal(q);
+                // if (current_distance < min_distance_to_goal) {
+                //     qLi_temp = q;
+                //     min_distance_to_goal = current_distance;
+                // }
 
-                if ((q - qHi).norm() < 0.1) {
-                    qHi_reencountered = true;
-                }
+                // if ((q - qHi).norm() < 0.1) {
+                //     qHi_reencountered = true;
+                // }
 
                 if (distance_to_goal(q) <= 0.1) {
                     path.waypoints.push_back(problem.q_goal);
@@ -105,11 +112,13 @@ amp::Path2D MyBugAlgorithm::plan(const amp::Problem2D& problem) {
                 qHi_reencountered = true;
 
             } while (!qHi_reencountered);
-
+            // std::cout << " left do while " << std::endl;
             // qLi = qLi_temp;
             // q = qLi;
             // path.waypoints.push_back(qLi);
+            path.waypoints.pop_back();
             q = path.waypoints.back();
+            // std::cout << "last point " << q << std::endl;
 
 
             // if (obstacle_detected(q)) {
@@ -123,6 +132,7 @@ amp::Path2D MyBugAlgorithm::plan(const amp::Problem2D& problem) {
         i++;
         if(i > 50)
         {
+            std::cout << " break in for loop " << std::endl;
             break;
         }
     }
@@ -232,29 +242,75 @@ std::vector<Eigen::Vector2d> MyBugAlgorithm::get_nearest_vertex(const Eigen::Vec
             break;
         }
     }
+    // Eigen::Vector2d tempVec3(2.5,5);
+    // points.push_back(tempVec3);
+    // points.push_back(tempVec3);
+    // points.push_back(tempVec3);
 
     return points;  // Return the vector of vertices
 }
 
 amp::Obstacle2D MyBugAlgorithm::get_nearest_obstacle(const Eigen::Vector2d& q, const amp::Problem2D& problem)
 {
-    amp::Obstacle2D ob;
-    double minDistance = 100000000;
+    amp::Obstacle2D closestObstacle;
+    double minDistance = std::numeric_limits<double>::max();  // Use max for initialization
     double holder;
+    int count = 0;
+    int index = 0;
+    bool flag = true;
 
-    for(const auto& obstacle:problem.obstacles)
-    {
+    for (const auto& obstacle : problem.obstacles)
+    {   
         const auto& vertices = obstacle.verticesCCW();
-        for (int i = 0; i < vertices.size(); ++i) {
-            holder = (q - vertices[i]).norm();
-            if ((q - vertices[i]).norm() < minDistance)
+        flag = true;
+        if(!MyBugAlgorithm::foundObstacles.empty())
+        {
+            for(auto ob : MyBugAlgorithm::foundObstacles)
             {
-                minDistance = holder;
-                ob = obstacle;
+                if(ob.verticesCCW() == vertices)
+                {
+                    flag = false;
+                    break;
+                }
             }
         }
+        if (!flag) break;
+
+
+        for (const auto& vertex : vertices)
+        {
+            holder = (q - vertex).norm();  // Compute distance to vertex
+            if (holder < minDistance)
+            {
+                index = count;
+                minDistance = holder;
+                closestObstacle = obstacle;  // Update closest obstacle
+            }
+        }
+        count++;
     }
-    return ob;
+    
+    MyBugAlgorithm::foundObstacles.push_back(closestObstacle);
+    std::cout << "Got new obstacle with vertex " << closestObstacle.verticesCCW()[0].transpose() << std::endl;
+    return closestObstacle;
+    // amp::Obstacle2D ob;
+    // double minDistance = 100000000;
+    // double holder;
+
+    // for(const auto& obstacle:problem.obstacles)
+    // {
+    //     const auto& vertices = obstacle.verticesCCW();
+    //     for (int i = 0; i < vertices.size(); ++i) {
+    //         holder = (q - vertices[i]).norm();
+    //         if ((q - vertices[i]).norm() < minDistance)
+    //         {
+    //             minDistance = holder;
+    //             ob = obstacle;
+    //         }
+    //     }
+    // }
+    // std::cout << "got new obstacle " << ob.verticesCCW()[0] << std::endl;
+    // return ob;
 }
 
 Eigen::Vector2d MyBugAlgorithm::follow_boundary(const Eigen::Vector2d& q, const Eigen::Vector2d& qHi, const std::vector<amp::Obstacle2D>& obstacles) {
