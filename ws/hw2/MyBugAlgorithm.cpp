@@ -1,5 +1,6 @@
 #include "MyBugAlgorithm.h"
 #include <algorithm>
+#include <complex>
 #include <limits>
 
 amp::Path2D MyBugAlgorithm::plan(const amp::Problem2D& problem) {
@@ -24,96 +25,271 @@ amp::Path2D MyBugAlgorithm::plan(const amp::Problem2D& problem) {
         return false;
     };
 
+    auto getDirection = [this](const Eigen::Vector2d& lead, const Eigen::Vector2d& q)
+    {
+        Eigen::Vector2d direction5 = (lead - q).normalized();
+
+        return direction5;
+    };
+
+    auto getRight = [this](const Eigen::Vector2d& direction3)
+    {
+        Eigen::Vector2d right_direction(direction3.y(), -direction3.x());
+
+        return right_direction;
+    };
+
+    auto getLeft = [this](const Eigen::Vector2d& direction4)
+    {
+        Eigen::Vector2d left_direction(direction4.y(), -direction4.x());
+
+        return left_direction;
+    };
+
+    /*
+     you rotate point (px, py) around point (ox, oy) by angle theta you'll get:
+
+p'x = cos(theta) * (px-ox) - sin(theta) * (py-oy) + ox
+
+p'y = sin(theta) * (px-ox) + cos(theta) * (py-oy) + oy
+    */
+    auto rotate_point = [this](const Eigen::Vector2d& point, const Eigen::Vector2d& center, double angle) {
+        double x = cos(angle) * (point.x() - center.x()) - sin(angle) * (point.y() - center.y()) + center.x();
+        double y = sin(angle) * (point.x() - center.x()) + cos(angle) * (point.y() - center.y()) + center.y();  // Add center.y() here
+        Eigen::Vector2d newVec(x, y);
+        return newVec;
+    };
+       
     int i = 0;
+    Eigen::Vector2d direction = (problem.q_goal - q).normalized();
     Eigen::Vector2d qLi = q;
+    Eigen::Vector2d lead = q + (problem.q_goal - q).normalized()*.1;
+    Eigen::Vector2d right_direction(direction.y(), -direction.x());
+    Eigen::Vector2d right = q + right_direction * 0.1;
+
+
     int doWhileCounter = 0;
 
     while (true) {
         // WORKING - moves bug towards goal
         int outerLoop = 0;
         int count2 = 0;
-        while (!obstacle_detected(q) && distance_to_goal(q) > 0.1) {
+        while (!obstacle_detected(lead) && distance_to_goal(q) > 0.1) {
             Eigen::Vector2d direction = (problem.q_goal - q).normalized();
-            q += direction * 0.1; 
+            q += direction * 0.2;
+            lead = q + direction *0.2;
+            right = q + getRight(direction) * 0.2;
+            // path.waypoints.push_back(right);
+            // path.waypoints.push_back(lead);
             path.waypoints.push_back(q);
-            // std::cout << "last points " << q.x() << " " << q.y() << std::endl;
-            // std::cout << " in first while loop " << std::endl;
             if (distance_to_goal(q) <= 0.1) {
                 // Goal reached
                 std::cout << "returning from if 1" << std::endl;
                 path.waypoints.push_back(problem.q_goal);
                 return path;
-            }
-            // if (count2 > 40)
-            // {
-            //     std::cout << "out of 1" << std::endl;
-            //     break;
-            // }
-            
+            }            
         }
-        // path.waypoints.pop_back();
-        // std::cout << "last points " << path.waypoints.back().x() << " " << path.waypoints.back().y() << std::endl;
-        // path.waypoints.push_back(problem.q_goal);
-        // return path;
+
     
 
                 // Step 2: Follow boundary when obstacle is detected
-        if (obstacle_detected(q)) {
+        if (obstacle_detected(lead)) {
             Eigen::Vector2d qHi = q;
             std::cout<<" obstacle " << std::endl;
             // Store the point on the boundary with the shortest distance to the goal
             Eigen::Vector2d qLi_temp = qLi;
+
             double min_distance_to_goal = distance_to_goal(qLi);
             bool qHi_reencountered = false;
             int j = 0;
+            int z = 0;
+            double angle_step = 0.05;  // Small angle step in radians
+            Eigen::Vector2d tempDir;
+
+            // lead += (problem.q_goal - q).normalized() * .2; 
             // Boundary following
+            // for (int i = 0; i < 50; i++) {
+            //     z = 0;
+            //     std::cout << "new iteration " << std::endl;
+            //     while (obstacle_detected(lead)) {
+            //         z++;
+            //         lead = rotate_point(lead, q, angle_step);  // Rotate lead around q
+
+            //         // std::cout << "Iteration " << i << ": Lead = " << lead.transpose() << ", Right = " << right.transpose() << ", q = " << q.transpose() << std::endl;
+
+            //         if (z > 100) {
+            //             std::cout << "Break condition met" << std::endl;
+            //             break;
+            //         }
+
+            //         // Update right based on lead's new direction
+            //         Eigen::Vector2d direction2 = (lead - q).normalized();
+            //         right = q + getRight(direction2) * 0.2;
+            //     }
+
+            //     // Direction adjustment: reverse the angle step if needed
+            //     if (lead == q || z > 100) {
+            //         angle_step = -angle_step;  // Reverse rotation direction
+            //         z = 0;  // Reset the iteration counter
+            //     }
+            //     tempDir = getDirection(lead, q);  // Direction to lead
+            //     // std::cout << q.transpose() << " lead: " << lead.transpose() <<" tempDir" << tempDir.transpose() <<std::endl;
+            //     q += tempDir * 0.2;  // Move q forward
+            //     lead = q + tempDir * 0.2;  // Update lead forward
+            //     right = q + getRight(tempDir) * 0.2;  // Update right
+            //     path.waypoints.push_back(lead);
+            //     path.waypoints.push_back(right);
+            //     path.waypoints.push_back(q);
+            //     int s = 0;
+
+            //     bool right = true;
+            //     while(obstacle_detected(right) && !obstacle_detected(lead))
+            //     {
+            //         q += tempDir *0.2;
+            //         lead = q + tempDir * 0.2;  // Update lead forward
+            //         right = q + getRight(tempDir) * 0.2;   
+            //         std::cout << "obs detected " << obstacle_detected(lead) << "at " << lead.transpose()<< std::endl;
+   
+            //         if(s > 50)
+            //         {
+            //             std::cout << "broke in new loop" << std::endl;
+            //             break;
+            //         }  
+            //         s++;            
+            //     }
+
+            //     // Update positions after wall-following iteration
+
+            //     // Add to path
+            //     path.waypoints.push_back(lead);
+            //     path.waypoints.push_back(right);
+            //     path.waypoints.push_back(q);
+            //     // if (close_to_start(q, start_point)) {
+            //     //     break;  // Exit once full circle is completed
+            //     // }
+            //     // Break condition to stop after completing the loop
+            //     // if (close_to_start(q, start_point)) {
+            //     //     break;  // Exit once full circle is completed
+            //     // }
+            // }
+
+            for(int i = 0; i < 50; i++)
+            {
+                tempDir = getDirection(lead, q);  // Direction to lead
+
+                bool lead_on = obstacle_detected(lead);
+                bool right_on = obstacle_detected(right);
+            
+                if(lead_on || (lead_on && right_on) || (!right_on &&!lead_on))
+                {
+                    lead = rotate_point(lead,q, 0.05);
+                    Eigen::Vector2d direction2 = (lead - q).normalized();
+                    right = q + getRight(direction2) * 0.2;
+                    std::cout <<"new lead " << lead.transpose() << std::endl;
+                    std::cout <<"new right" << right.transpose() << std::endl;
+                    path.waypoints.push_back(lead);
+                    path.waypoints.push_back(right);
+                    std::cout << "after" << " lead: " << obstacle_detected(lead) << " right: " << obstacle_detected(right) << std::endl;
+
+                }
+                else if (!lead_on && right_on)
+                {
+                    q += tempDir *0.2;
+                    lead = q + tempDir * 0.2;  // Update lead forward
+                    right = q + getRight(tempDir) * 0.2;
+                    path.waypoints.push_back(q);  
+                }
+                else if (!lead_on && right_on)
+                {
+                    rotate_point(lead,q, 0.05);
+                } else{
+                    std::cout << "breaking" << " lead: " << lead_on << " right: " << right_on << std::endl;
+                }
+                
+            }
+            path.waypoints.push_back(problem.q_goal);
+            return path;
+
+            
             do {
-                q = MyBugAlgorithm::follow_boundary(q, qHi, problem.obstacles);  // Example: implement your boundary following here
-                path.waypoints.push_back(q);
 
-                double current_distance = distance_to_goal(q);
-                if (current_distance < min_distance_to_goal) {
-                    qLi_temp = q;
-                    min_distance_to_goal = current_distance;
-                }
+                // while(obstacle_detected(lead))
+                // {
+                //     z++;
+                //     lead = rotate_point(lead, q, angle_step);
+                //     // path.waypoints.push_back(lead);
+                    
+                //     // Update right to be based on the direction from q to lead
+                //     Eigen::Vector2d direction = (lead - q).normalized();
+                //     right = q + getRight(direction) * 0.1;
+                //     break;
+                // // Recalculate right after lead is rotated
+                //     // Eigen::Vector2d direction = (problem.q_goal - q).normalized();
+                //     // right = q + getRight(direction) * 0.1;
+                // }
+                // if (!obstacle_detected(lead)) {
+                //     Eigen::Vector2d tempDir = (lead - q).normalized();
+                //     q = lead;
+                //     lead += 0.1 * tempDir;
+                //     right = q + getRight(tempDir) * 0.1;
+                //     path.waypoints.push_back(q);
+                // }
+                // path.waypoints.push_back(lead);
+                // path.waypoints.push_back(right);
+                
+        //         q = MyBugAlgorithm::follow_boundary(q, qHi, problem.obstacles);  // Example: implement your boundary following here
+        //         path.waypoints.push_back(q);
 
-                if ((q - qHi).norm() < 0.1) {
-                    qHi_reencountered = true;
-                }
+        //         double current_distance = distance_to_goal(q);
+        //         if (current_distance < min_distance_to_goal) {
+        //             qLi_temp = q;
+        //             min_distance_to_goal = current_distance;
+        //         }
 
-                if (distance_to_goal(q) <= 0.1) {
-                    // Goal reached while following the boundary
-                    return path;
-                }
+        //         if ((q - qHi).norm() < 0.1) {
+        //             qHi_reencountered = true;
+        //         }
+
+        //         if (distance_to_goal(q) <= 0.1) {
+        //             // Goal reached while following the boundary
+        //             return path;
+        //         }
 
                 j++;
-                if(j>50) break;
-            } while (!qHi_reencountered);
+                break;
+             } while (!qHi_reencountered);
 
-            // Update qLi with the closest point found during boundary following
-            qLi = qLi_temp;
+        //     // Update qLi with the closest point found during boundary following
+        //     qLi = qLi_temp;
 
-            // Step 3: Go to qLi
-            q = qLi;
-            path.waypoints.push_back(qLi);
+        //     // Step 3: Go to qLi
+        //     q = qLi;
+        //     path.waypoints.push_back(qLi);
 
-            // Step 4: If moving toward the goal moves into an obstacle, exit with failure
-            if (obstacle_detected(q)) {
-                amp::Path2D empty_path;
-                return empty_path;
-            }
-        }
-
-        if(i > 50)
+        //     // Step 4: If moving toward the goal moves into an obstacle, exit with failure
+        //     if (obstacle_detected(q)) {
+        //         amp::Path2D empty_path;
+        //         return empty_path;
+                if(i > 50)
         {
             break;
         }
 
         i++;
-    }
+            }
+             }
+
+        // if(i > 50)
+        // {
+        //     break;
+        // }
+
+        // i++;
+
     path.waypoints.push_back(problem.q_goal);
     return path;
-}
+    }
+
 
 
 // Helper function for checking if a point is inside a polygon
