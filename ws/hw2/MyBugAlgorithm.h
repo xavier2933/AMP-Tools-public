@@ -14,15 +14,16 @@ class MyBugAlgorithm : public amp::BugAlgorithm {
         // Add any other methods here...
         // bool is_point_inside_polygon(const amp::Problem2D& problem, Eigen::Vector2d q);
         bool is_point_inside_polygon(const amp::Polygon& polygon, const Eigen::Vector2d& point) const;
-        Eigen::Vector2d closest_point_on_line_segment(const Eigen::Vector2d& p, const Eigen::Vector2d& a, const Eigen::Vector2d& b);
+        Eigen::Vector2d closest_point_on_line(const Eigen::Vector2d& p1, const Eigen::Vector2d& p2, const Eigen::Vector2d& point) const;
         amp::Obstacle2D get_nearest_obstacle(const Eigen::Vector2d& q, const amp::Problem2D& problem);
         std::vector<Eigen::Vector2d> get_nearest_vertex(const Eigen::Vector2d& q, const amp::Obstacle2D ob, const Eigen::Vector2d& q_goal);
+        bool is_point_near_edge(const Eigen::Vector2d& p1, const Eigen::Vector2d& p2, const Eigen::Vector2d& point) const;
 
+        Eigen::Vector2d follow_boundary(const Eigen::Vector2d& current_position, const Eigen::Vector2d& qHi, const std::vector<amp::Obstacle2D>& obstacles);
 
 
     // You can add other private methods, e.g., boundary following, etc.
         // Eigen::Vector2d follow_boundary(const Eigen::Vector2d& q, const Eigen::Vector2d& qHi, const std::vector<amp::Obstacle2D>& obstacles);
-        Eigen::Vector2d follow_boundary(const Eigen::Vector2d& q, const Eigen::Vector2d& qHi, const std::vector<amp::Obstacle2D>& obstacles);
 
 
     private:
