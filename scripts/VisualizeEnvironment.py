@@ -86,7 +86,7 @@ def visualize_path(path : list, collision_points = None):
         x_pts.append(waypt[0])
         y_pts.append(waypt[1])
     #ax.scatter(x_pts, y_pts, ls=visualize_config["path_line_style"], color=visualize_config["path_line_color"], lw=visualize_config["path_line_width"], zorder=2)
-    ax.scatter(x_pts, y_pts, marker=visualize_config["path_point_marker"], color=visualize_config["path_line_color"], zorder=2)
+    ax.plot(x_pts, y_pts, marker=visualize_config["path_point_marker"], color=visualize_config["path_line_color"], zorder=2)
     if collision_points is not None:
         for colpt in collision_points:
             x_col_pts.append(colpt[0])

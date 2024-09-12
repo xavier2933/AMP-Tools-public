@@ -34,8 +34,12 @@ amp::Path2D MyBugAlgorithm::plan(const amp::Problem2D& problem) {
 
     auto getRight = [this](const Eigen::Vector2d& direction3)
     {
-        Eigen::Vector2d right_direction(direction3.y(), -direction3.x());
-
+        double angle = M_PI / 4;  // 45 degrees in radians
+        Eigen::Matrix2d rotation_matrix;
+        rotation_matrix << std::cos(angle), std::sin(angle),
+                        -std::sin(angle), std::cos(angle);
+        
+        Eigen::Vector2d right_direction = rotation_matrix * direction3.normalized();
         return right_direction;
     };
 
@@ -66,19 +70,23 @@ p'y = sin(theta) * (px-ox) + cos(theta) * (py-oy) + oy
     Eigen::Vector2d lead = q + (problem.q_goal - q).normalized()*.1;
     Eigen::Vector2d right_direction(direction.y(), -direction.x());
     Eigen::Vector2d right = q + right_direction * 0.1;
+    Eigen::Vector2d halfRight = q + right_direction * 0.05;
+
 
 
     int doWhileCounter = 0;
 
     while (true) {
         // WORKING - moves bug towards goal
+        double stepSize = 0.01;
         int outerLoop = 0;
         int count2 = 0;
         while (!obstacle_detected(lead) && distance_to_goal(q) > 0.1) {
             Eigen::Vector2d direction = (problem.q_goal - q).normalized();
-            q += direction * 0.2;
-            lead = q + direction *0.2;
-            right = q + getRight(direction) * 0.2;
+            q += direction * stepSize;
+            lead = q + direction *stepSize;
+            right = q + getRight(direction) * stepSize;
+            halfRight = q + getRight(direction) * (stepSize/2.00);
             // path.waypoints.push_back(right);
             // path.waypoints.push_back(lead);
             path.waypoints.push_back(q);
@@ -106,109 +114,177 @@ p'y = sin(theta) * (px-ox) + cos(theta) * (py-oy) + oy
             double angle_step = 0.05;  // Small angle step in radians
             Eigen::Vector2d tempDir;
 
-            // lead += (problem.q_goal - q).normalized() * .2; 
-            // Boundary following
-            // for (int i = 0; i < 50; i++) {
-            //     z = 0;
-            //     std::cout << "new iteration " << std::endl;
-            //     while (obstacle_detected(lead)) {
-            //         z++;
-            //         lead = rotate_point(lead, q, angle_step);  // Rotate lead around q
+        
+            double angleTheta = 0.025;
+            Eigen::Vector2d halfRight;
+            double angleTraveled = 0.0;
 
-            //         // std::cout << "Iteration " << i << ": Lead = " << lead.transpose() << ", Right = " << right.transpose() << ", q = " << q.transpose() << std::endl;
-
-            //         if (z > 100) {
-            //             std::cout << "Break condition met" << std::endl;
-            //             break;
-            //         }
-
-            //         // Update right based on lead's new direction
-            //         Eigen::Vector2d direction2 = (lead - q).normalized();
-            //         right = q + getRight(direction2) * 0.2;
-            //     }
-
-            //     // Direction adjustment: reverse the angle step if needed
-            //     if (lead == q || z > 100) {
-            //         angle_step = -angle_step;  // Reverse rotation direction
-            //         z = 0;  // Reset the iteration counter
-            //     }
-            //     tempDir = getDirection(lead, q);  // Direction to lead
-            //     // std::cout << q.transpose() << " lead: " << lead.transpose() <<" tempDir" << tempDir.transpose() <<std::endl;
-            //     q += tempDir * 0.2;  // Move q forward
-            //     lead = q + tempDir * 0.2;  // Update lead forward
-            //     right = q + getRight(tempDir) * 0.2;  // Update right
-            //     path.waypoints.push_back(lead);
-            //     path.waypoints.push_back(right);
-            //     path.waypoints.push_back(q);
-            //     int s = 0;
-
-            //     bool right = true;
-            //     while(obstacle_detected(right) && !obstacle_detected(lead))
-            //     {
-            //         q += tempDir *0.2;
-            //         lead = q + tempDir * 0.2;  // Update lead forward
-            //         right = q + getRight(tempDir) * 0.2;   
-            //         std::cout << "obs detected " << obstacle_detected(lead) << "at " << lead.transpose()<< std::endl;
-   
-            //         if(s > 50)
-            //         {
-            //             std::cout << "broke in new loop" << std::endl;
-            //             break;
-            //         }  
-            //         s++;            
-            //     }
-
-            //     // Update positions after wall-following iteration
-
-            //     // Add to path
-            //     path.waypoints.push_back(lead);
-            //     path.waypoints.push_back(right);
-            //     path.waypoints.push_back(q);
-            //     // if (close_to_start(q, start_point)) {
-            //     //     break;  // Exit once full circle is completed
-            //     // }
-            //     // Break condition to stop after completing the loop
-            //     // if (close_to_start(q, start_point)) {
-            //     //     break;  // Exit once full circle is completed
-            //     // }
-            // }
-
-            for(int i = 0; i < 50; i++)
+            /*
+            THoughts:
+            Track total angle turned? if > 160 turn right?
+            */
+            for(int i = 0; i < 100000; i++)
             {
+                if(distance_to_goal(q) < distance_to_goal(qLi))
+                {
+                    qLi = q;
+                }
+                if((q - qHi).norm() < 0.1 && i > 1000)
+                {
+                    qHi_reencountered = true;
+                    std::cout << "breaking" << std::endl;
+                    break;
+                }
                 tempDir = getDirection(lead, q);  // Direction to lead
 
                 bool lead_on = obstacle_detected(lead);
                 bool right_on = obstacle_detected(right);
-            
-                if(lead_on || (lead_on && right_on) || (!right_on &&!lead_on))
-                {
-                    lead = rotate_point(lead,q, 0.05);
-                    Eigen::Vector2d direction2 = (lead - q).normalized();
-                    right = q + getRight(direction2) * 0.2;
-                    std::cout <<"new lead " << lead.transpose() << std::endl;
-                    std::cout <<"new right" << right.transpose() << std::endl;
-                    path.waypoints.push_back(lead);
-                    path.waypoints.push_back(right);
-                    std::cout << "after" << " lead: " << obstacle_detected(lead) << " right: " << obstacle_detected(right) << std::endl;
+                bool half_right_on = obstacle_detected(halfRight);
 
-                }
+                // if(angleTraveled > 3.14/2)
+                // {
+                //     lead = rotate_point(lead,q, (5*3.1415/2));
+                //     q-= stepSize * tempDir;
+                //     right = q + getRight(tempDir) * stepSize*1;
+                //     lead = right;
+                //     tempDir = getDirection(lead,q);
+                //     right = q + getRight(tempDir) * stepSize;
+                //     angleTraveled = 0.0;
+                // }
+                if(lead_on || (!right_on && !lead_on))
+                {
+                    lead = rotate_point(lead,q, angleTheta);
+                    Eigen::Vector2d direction2 = (lead - q).normalized();
+                    right = q + getRight(direction2) * stepSize;
+                    halfRight = q + getRight(direction2) * (stepSize/2.00);
+                    angleTraveled+=angleTheta;
+
+                    // std::cout <<"new lead " << lead.transpose() << std::endl;
+                    // std::cout <<"new right" << right.transpose() << std::endl;
+                    // path.waypoints.push_back(lead);
+                    // path.waypoints.push_back(right);
+                    // std::cout << "after" << " lead: " << obstacle_detected(lead) << " right: " << obstacle_detected(right) << std::endl;
+
+                 }// else if (!half_right_on) {
+                //     lead = rotate_point(lead,q, angleTheta);
+                //     Eigen::Vector2d direction2 = (lead - q).normalized();
+                //     right = q + getRight(direction2) * stepSize;
+                //     halfRight = q + getRight(direction2) * (stepSize/2.00);
+
+                //     std::cout <<"new lead " << lead.transpose() << std::endl;
+                //     std::cout <<"new right" << right.transpose() << std::endl;
+                //     path.waypoints.push_back(lead);
+                //     path.waypoints.push_back(right);
+                //     std::cout << "after" << " lead: " << obstacle_detected(lead) << " right: " << obstacle_detected(right) << std::endl;
+                // }
                 else if (!lead_on && right_on)
                 {
-                    q += tempDir *0.2;
-                    lead = q + tempDir * 0.2;  // Update lead forward
-                    right = q + getRight(tempDir) * 0.2;
+                    q += tempDir * stepSize;
+                    lead = q + tempDir * stepSize;  // Update lead forward
+                    right = q + getRight(tempDir) * stepSize;
+                    // halfRight = q + getRight(tempDir) * (stepSize/2.00);
+
                     path.waypoints.push_back(q);  
                 }
-                else if (!lead_on && right_on)
-                {
-                    rotate_point(lead,q, 0.05);
-                } else{
+                // else if (!lead_on && right_on)
+                // {
+                //     lead = rotate_point(lead,q, angleTheta);
+                //     Eigen::Vector2d direction2 = (lead - q).normalized();
+                //     right = q + getRight(direction2) * stepSize;
+                //     std::cout <<"new lead " << lead.transpose() << std::endl;
+                //     std::cout <<"new right" << right.transpose() << std::endl;
+                //     path.waypoints.push_back(lead);
+                //     path.waypoints.push_back(right);
+                //     std::cout << "after" << " lead: " << obstacle_detected(lead) << " right: " << obstacle_detected(right) << std::endl;
+                else{
                     std::cout << "breaking" << " lead: " << lead_on << " right: " << right_on << std::endl;
                 }
                 
             }
-            path.waypoints.push_back(problem.q_goal);
-            return path;
+
+            for(int i = 0; i < 100000; i++)
+            {
+                // if(distance_to_goal(q) < distance_to_goal(qLi))
+                // {
+                //     qLi = q;
+                // }
+                if((q - qLi).norm() < 0.1 && i > 1000)
+                {
+                    qHi_reencountered = true;
+                    std::cout << "breaking" << std::endl;
+                    break;
+                }
+                tempDir = getDirection(lead, q);  // Direction to lead
+
+                bool lead_on = obstacle_detected(lead);
+                bool right_on = obstacle_detected(right);
+                bool half_right_on = obstacle_detected(halfRight);
+
+                // if(angleTraveled > 3.14/2)
+                // {
+                //     lead = rotate_point(lead,q, (5*3.1415/2));
+                //     q-= stepSize * tempDir;
+                //     right = q + getRight(tempDir) * stepSize*1;
+                //     lead = right;
+                //     tempDir = getDirection(lead,q);
+                //     right = q + getRight(tempDir) * stepSize;
+                //     angleTraveled = 0.0;
+                // }
+                if(lead_on || (!right_on && !lead_on))
+                {
+                    lead = rotate_point(lead,q, angleTheta);
+                    Eigen::Vector2d direction2 = (lead - q).normalized();
+                    right = q + getRight(direction2) * stepSize;
+                    halfRight = q + getRight(direction2) * (stepSize/2.00);
+                    angleTraveled+=angleTheta;
+
+                    // std::cout <<"new lead " << lead.transpose() << std::endl;
+                    // std::cout <<"new right" << right.transpose() << std::endl;
+                    // path.waypoints.push_back(lead);
+                    // path.waypoints.push_back(right);
+                    // std::cout << "after" << " lead: " << obstacle_detected(lead) << " right: " << obstacle_detected(right) << std::endl;
+
+                 }// else if (!half_right_on) {
+                //     lead = rotate_point(lead,q, angleTheta);
+                //     Eigen::Vector2d direction2 = (lead - q).normalized();
+                //     right = q + getRight(direction2) * stepSize;
+                //     halfRight = q + getRight(direction2) * (stepSize/2.00);
+
+                //     std::cout <<"new lead " << lead.transpose() << std::endl;
+                //     std::cout <<"new right" << right.transpose() << std::endl;
+                //     path.waypoints.push_back(lead);
+                //     path.waypoints.push_back(right);
+                //     std::cout << "after" << " lead: " << obstacle_detected(lead) << " right: " << obstacle_detected(right) << std::endl;
+                // }
+                else if (!lead_on && right_on)
+                {
+                    q += tempDir * stepSize;
+                    lead = q + tempDir * stepSize;  // Update lead forward
+                    right = q + getRight(tempDir) * stepSize;
+                    // halfRight = q + getRight(tempDir) * (stepSize/2.00);
+
+                    path.waypoints.push_back(q);  
+                }
+                // else if (!lead_on && right_on)
+                // {
+                //     lead = rotate_point(lead,q, angleTheta);
+                //     Eigen::Vector2d direction2 = (lead - q).normalized();
+                //     right = q + getRight(direction2) * stepSize;
+                //     std::cout <<"new lead " << lead.transpose() << std::endl;
+                //     std::cout <<"new right" << right.transpose() << std::endl;
+                //     path.waypoints.push_back(lead);
+                //     path.waypoints.push_back(right);
+                //     std::cout << "after" << " lead: " << obstacle_detected(lead) << " right: " << obstacle_detected(right) << std::endl;
+                else{
+                    std::cout << "breaking" << " lead: " << lead_on << " right: " << right_on << std::endl;
+                }
+                
+            }
+
+
+            std::cout << " leave point " << qLi << std::endl;
+            // path.waypoints.push_back(problem.q_goal);
+            // return path;
 
             
             do {
