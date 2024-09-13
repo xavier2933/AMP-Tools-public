@@ -10,7 +10,7 @@ amp::Path2D MyBugAlgorithm::plan(const amp::Problem2D& problem)
 {
     amp::Path2D path;
     // change 1 to 2 to make bug 2
-    path = MyBugAlgorithm::planBug2(problem, path);
+    path = MyBugAlgorithm::planBug1(problem, path);
     return path;
 }
 
@@ -325,10 +325,17 @@ p'y = sin(theta) * (px-ox) + cos(theta) * (py-oy) + oy
             q += direction * stepSize;
             lead = q + direction *stepSize;
             right = q + getRight(direction) * stepSize;
-            halfRight = q + getRight(direction) * (stepSize/2.00);
             // path.waypoints.push_back(right);
             // path.waypoints.push_back(lead);
+            if(obstacle_detected(lead))
+            {
+                break;
+            }
             path.waypoints.push_back(q);
+            // if(obstacle_detected(q)){
+            //     std::cout << "BREAK 1" << std::endl;
+            //     return path;
+            // }
             if (distance_to_goal(q) <= 0.1) {
                 // Goal reached
                 std::cout << "found goal! " << std::endl;
@@ -360,10 +367,27 @@ p'y = sin(theta) * (px-ox) + cos(theta) * (py-oy) + oy
 
             for(int i = 0; i < 100000; i++)
             {
-
+            // if(obstacle_detected(q)){
+            //     std::cout << "BREAK 2" << std::endl;
+            //     return path;
+            // }
                 if(isPointNearLine(q, problem.q_init, problem.q_goal) && ((q - qHi).norm() > 0.01) && distance_to_goal(q) < hitDist)
                 {
-                    break;
+                    bool test = true;
+                    Eigen::Vector2d temp = q;
+                    Eigen::Vector2d testDir = getDirection(problem.q_goal, q);
+                    for(double i = 0; i < 0.2; i+=0.01)
+                    {
+                        
+                        if(obstacle_detected(q+(i*testDir)))
+                        {
+                            test = false;
+                        }
+                    }
+                    if(test = true)
+                    {
+                        break;
+                    }
                 }
                 
                 tempDir = getDirection(lead, q);  // Direction to lead
