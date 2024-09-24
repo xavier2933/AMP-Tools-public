@@ -14,21 +14,29 @@ Eigen::Vector2d MyManipulator2D::getJointLocation(const amp::ManipulatorState& s
     // std::cout << joint_positions[1] << std::endl;
 
     // Joint angles (Replace these with actual state variables)
-    // double theta1 = M_PI / 6; // Replace with state(0)
-    // double theta2 = M_PI / 3; // Replace with state(1)
-    // double theta3 = 7 * M_PI / 4; // Replace with state(2)
-    double theta1 = -0.505361; // Replace with state(0)
-    double theta2 = 1.82348; // Replace with state(1)
-    double theta3 = -1.31812; // Replace with state(2)
+    double theta1 = M_PI / 6; // Replace with state(0)
+    double theta2 = M_PI / 3; // Replace with state(1)
+    double theta3 = 7 * M_PI / 4; // Replace with state(2)
+
+    /*
+    Testing for IK
+    */
+    // double theta1 = -0.505361; // Replace with state(0)
+    // double theta2 = 1.82348; // Replace with state(1)
+    // double theta3 = -1.31812; // Replace with state(2)
 
 
     // Link lengths
-    // double a1 = 0.5;
-    // double a2 = 1.0;
-    // double a3 = 0.5;
-    double a1 = 1.0;
-    double a2 = 0.5;
-    double a3 = 1.0;
+    double a1 = 0.5;
+    double a2 = 1.0;
+    double a3 = 0.5;
+
+    /*
+    Testing for ik
+    */
+    // double a1 = 1.0;
+    // double a2 = 0.5;
+    // double a3 = 1.0;
 
     // Define transformation matrices using Eigen
     Eigen::Matrix3d T1, T2, T3, T4;
