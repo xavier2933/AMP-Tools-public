@@ -14,14 +14,21 @@ Eigen::Vector2d MyManipulator2D::getJointLocation(const amp::ManipulatorState& s
     // std::cout << joint_positions[1] << std::endl;
 
     // Joint angles (Replace these with actual state variables)
-    double theta1 = M_PI / 6; // Replace with state(0)
-    double theta2 = M_PI / 3; // Replace with state(1)
-    double theta3 = 7 * M_PI / 4; // Replace with state(2)
+    // double theta1 = M_PI / 6; // Replace with state(0)
+    // double theta2 = M_PI / 3; // Replace with state(1)
+    // double theta3 = 7 * M_PI / 4; // Replace with state(2)
+    double theta1 = -0.505361; // Replace with state(0)
+    double theta2 = 1.82348; // Replace with state(1)
+    double theta3 = -1.31812; // Replace with state(2)
+
 
     // Link lengths
-    double a1 = 0.5;
-    double a2 = 1.0;
-    double a3 = 0.5;
+    // double a1 = 0.5;
+    // double a2 = 1.0;
+    // double a3 = 0.5;
+    double a1 = 1.0;
+    double a2 = 0.5;
+    double a3 = 1.0;
 
     // Define transformation matrices using Eigen
     Eigen::Matrix3d T1, T2, T3, T4;
@@ -89,21 +96,34 @@ double a2 = 0.5; // Length of second link
 double a3 = 1.0; // Length of third link
 double xe = 2.0;  // End-effector x position
 double ye = 0.0;  // End-effector y position
-double g = atan(xe/ye);   // Orientation (in radians, since we're using radians everywhere)
-std::cout << "g = " << g << std::endl;
-// Calculate position P3 (end-effector minus third link contribution)
-double x3 = xe;
-double y3 = ye;
+double gamma = atan2(ye, xe);
+
+// Calculate the wrist position (P2)
+double x3 = xe - a3 * cos(gamma);
+double y3 = ye - a3 * sin(gamma);
+
+// Distance from the base to the wrist position
 double C = std::sqrt(x3 * x3 + y3 * y3);
 
-double j2_pos_x = xe - a3 * cos(g);
-double j2_pos_y = ye - a3 * sin(g);
+// Use the law of cosines to find theta2
+double cos_theta2 = (C * C - a1 * a1 - a2 * a2) / (2 * a1 * a2);
+joint_angles(1) = acos(cos_theta2);  // Theta2
 
-std::cout << "end " << xe << " " << ye << std::endl;
-std::cout << "j2 end " << j2_pos_x << " " << j2_pos_y<< std::endl;
+// Solve for theta1 using trigonometry
+double theta1_part1 = atan2(y3, x3);
+double theta1_part2 = atan2(a2 * sin(joint_angles(1)), a1 + a2 * cos(joint_angles(1)));
+joint_angles(0) = theta1_part1 - theta1_part2;  // Theta1
 
+// Solve for theta3
+joint_angles(2) = gamma - joint_angles(0) - joint_angles(1);  // Theta3
 
+std::cout << "joint angles: " << joint_angles(0) << " " << joint_angles(1) << " " << joint_angles(2) << std::endl;
+
+// Return the computed joint angles
 return joint_angles;
+
+
+
     // If you have different implementations for 2/3/n link manipulators, you can separate them here
     // if (nLinks() == 2) {
 

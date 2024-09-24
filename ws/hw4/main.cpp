@@ -19,9 +19,10 @@ int main(int argc, char** argv) {
 
     MyManipulator2D manipulator;
 
+    Eigen::Vector2d test(2,0);
+
     // You can visualize your manipulator given an angle state like so:
-    amp::ManipulatorState test_state;
-    test_state.setZero();
+    amp::ManipulatorState test_state = manipulator.getConfigurationFromIK(test);
     // The visualizer uses your implementation of forward kinematics to show the joint positions so you can use that to test your FK algorithm
     Visualizer::makeFigure(manipulator, test_state); 
 
