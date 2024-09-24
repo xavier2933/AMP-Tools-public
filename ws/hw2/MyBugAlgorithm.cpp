@@ -10,7 +10,7 @@ amp::Path2D MyBugAlgorithm::plan(const amp::Problem2D& problem)
 {
     amp::Path2D path;
     // change 1 to 2 to make bug 2
-    path = MyBugAlgorithm::planBug1(problem, path);
+    path = MyBugAlgorithm::planBug2(problem, path);
     return path;
 }
 
