@@ -18,6 +18,10 @@ Eigen::Vector2d MyManipulator2D::getJointLocation(const amp::ManipulatorState& s
     double theta2 = M_PI / 3; // Replace with state(1)
     double theta3 = 7 * M_PI / 4; // Replace with state(2)
 
+    // double theta1 = state(0); // Replace with state(0)
+    // double theta2 = state(1); // Replace with state(1)
+    // double theta3 = state(2); // Replace with state(2)
+
     /*
     Testing for IK
     */
@@ -76,7 +80,7 @@ Eigen::Vector2d MyManipulator2D::getJointLocation(const amp::ManipulatorState& s
 
     // Extract the (x, y) part of the positions and store them
     std::vector<Eigen::Vector2d> joint_positions;
-    // joint_positions.push_back(joint1_position.head<2>()); // Position of joint 1
+    joint_positions.push_back(joint1_position.head<2>()); // Position of joint 1
     joint_positions.push_back(joint2_position.head<2>()); // Position of joint 2
     joint_positions.push_back(joint3_position.head<2>()); // Position of joint 3
     joint_positions.push_back(end_effector_position.head<2>()); // Position of end effector

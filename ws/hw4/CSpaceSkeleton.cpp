@@ -1,5 +1,18 @@
 #include "CSpaceSkeleton.h"
 
+/*
+IF I NEED TO DO C SPACE
+
+use forward kinematics to get point one and point two
+check line segment between origin and point 1, point1 and point 2
+if interesects with grid -> thetas not valid
+else -> thetas valid, add to vector of valid thetas
+fill in grid with these valid thetas
+*/
+
+
+
+
 // Override this method for returning whether or not a point is in collision
 
 std::pair<std::size_t, std::size_t> MyGridCSpace2D::getCellFromPoint(double x0, double x1) const {
