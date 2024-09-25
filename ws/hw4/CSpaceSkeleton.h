@@ -27,6 +27,8 @@ class MyManipulatorCSConstructor : public amp::ManipulatorCSConstructor {
         // Override this method for computing all of the boolean collision values for each cell in the cspace
         virtual std::unique_ptr<amp::GridCSpace2D> construct(const amp::LinkManipulator2D& manipulator, const amp::Environment2D& env) override;
         bool is_point_inside_polygon(const amp::Environment2D& environment, const Eigen::Vector2d& point) const;
+        bool checkLineSegment(Eigen::Vector2d j1, Eigen::Vector2d j2, const amp::Environment2D& env);
+
 
 
     private:

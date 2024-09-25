@@ -32,11 +32,11 @@ int main(int argc, char** argv) {
     
 
     // Create the collision space constructor
-    std::size_t n_cells = 1000;
+    std::size_t n_cells = 500;
     MyManipulatorCSConstructor cspace_constructor(n_cells);
 
     // Create the collision space using a given manipulator and environment
-    std::unique_ptr<amp::GridCSpace2D> cspace = cspace_constructor.construct(manipulator, HW4::getEx3Workspace1());
+    std::unique_ptr<amp::GridCSpace2D> cspace = cspace_constructor.construct(manipulator, HW4::getEx3Workspace3());
 
     // You can visualize your cspace 
     Visualizer::makeFigure(*cspace);
