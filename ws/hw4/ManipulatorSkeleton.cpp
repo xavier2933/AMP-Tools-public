@@ -76,16 +76,17 @@ Eigen::Vector2d MyManipulator2D::getJointLocation(const amp::ManipulatorState& s
 
     // Extract the (x, y) part of the positions and store them
     std::vector<Eigen::Vector2d> joint_positions;
-    joint_positions.push_back(joint1_position.head<2>()); // Position of joint 1
+    // joint_positions.push_back(joint1_position.head<2>()); // Position of joint 1
     joint_positions.push_back(joint2_position.head<2>()); // Position of joint 2
     joint_positions.push_back(joint3_position.head<2>()); // Position of joint 3
     joint_positions.push_back(end_effector_position.head<2>()); // Position of end effector
 
     // Print positions for debugging
-    std::cout << "Joint 1 position: " << joint1_position.head<2>().transpose() << std::endl;
-    std::cout << "Joint 2 position: " << joint2_position.head<2>().transpose() << std::endl;
-    std::cout << "Joint 3 position: " << joint3_position.head<2>().transpose() << std::endl;
-    std::cout << "End effector position: " << end_effector_position.head<2>().transpose() << std::endl;
+    // std::cout << "Joint 1 position: " << joint1_position.head<2>().transpose() << std::endl;
+    // std::cout << "Joint 2 position: " << joint2_position.head<2>().transpose() << std::endl;
+    // std::cout << "Joint 3 position: " << joint3_position.head<2>().transpose() << std::endl;
+    // std::cout << "End effector position: " << end_effector_position.head<2>().transpose() << std::endl;
+    std::cout << "returning " << joint_positions[joint_index] << std::endl;
 
     // Return the position of the requested joint
     return joint_positions[joint_index];
@@ -102,8 +103,8 @@ joint_angles.setZero();
 double a1 = 1.0; // Length of first link
 double a2 = 0.5; // Length of second link
 double a3 = 1.0; // Length of third link
-double xe = 2.0;  // End-effector x position
-double ye = 0.0;  // End-effector y position
+double xe = end_effector_location.x();  // End-effector x position
+double ye = end_effector_location.y();  // End-effector y position
 double gamma = atan2(ye, xe);
 
 // Calculate the wrist position (P2)

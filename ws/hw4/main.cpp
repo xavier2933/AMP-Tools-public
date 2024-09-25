@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
     
 
     // Create the collision space constructor
-    std::size_t n_cells = 10;
+    std::size_t n_cells = 1000;
     MyManipulatorCSConstructor cspace_constructor(n_cells);
 
     // Create the collision space using a given manipulator and environment
@@ -41,6 +41,6 @@ int main(int argc, char** argv) {
     Visualizer::showFigures();
 
     // Grade method
-    amp::HW4::grade<MyManipulator2D>(cspace_constructor, "nonhuman.biologic@myspace.edu", argc, argv);
+    amp::HW4::grade<MyManipulator2D>(cspace_constructor, "xavier.okeefe@colorado.edu", argc, argv);
     return 0;
 }
