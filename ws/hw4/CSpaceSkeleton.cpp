@@ -125,46 +125,6 @@ std::unique_ptr<amp::GridCSpace2D> MyManipulatorCSConstructor::construct(const a
             }
         }
     }
-
-
-    // for (int i = 0; i < m_cells_per_dim; ++i) {
-    //     double x = env.x_min + (i + 0.5) * cellWidth;  // Center of the current column of cells
-
-    //     for (int j = 0; j < m_cells_per_dim; ++j) {
-    //         double y = env.y_min + (j + 0.5) * cellWidth;  // Center of the current row of cells
-    //         Eigen::Vector2d point(x, y);
-
-    //         // Check if the point is inside any obstacle
-    //         if (is_point_inside_polygon(env, point)) {
-    //             // std::cout << "Point inside obstacle: (" << point.x() << ", " << point.y() << ")" << std::endl;
-    //             // std::cout << "Marked cell x: " << x << " y: " << y << std::endl;
-
-    //             // Mark the corresponding cell as occupied
-    //             auto [cellX, cellY] = cspace.getCellFromPoint(x, y);
-    //             cspace(cellX, cellY) = true;  // Mark cell as occupied
-    //         }
-    //     }
-    // }
-
-    // bool test = is_point_inside_polygon(env, temp);
-    // if(test)
-    // {
-    //     auto[cellX,cellY] = cspace.getCellFromPoint(temp.x(), temp.y());
-    //     cspace(cellX, cellY) = true;  // Mark cell as occupied
-    //     std::cout << "Success " << std::endl;
-
-    // }
-
-    // Eigen::Vector2d temp2(1.5,-1.9);
-
-    // test = is_point_inside_polygon(env, temp);
-    // if(test)
-    // {
-    //     auto[cellX2,cellY2] = cspace.getCellFromPoint(temp2.x(), temp2.y());
-    //     cspace(cellX2, cellY2) = true;  // Mark cell as occupied
-    //     std::cout << "Success " << std::endl;
-
-    // }
     
     // Returning the object of type std::unique_ptr<MyGridCSpace2D> can automatically cast it to a polymorphic base-class pointer of type std::unique_ptr<amp::GridCSpace2D>.
     // The reason why this works is not super important for our purposes, but if you are curious, look up polymorphism!

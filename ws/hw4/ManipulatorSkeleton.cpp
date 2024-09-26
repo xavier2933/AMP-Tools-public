@@ -18,9 +18,9 @@ Eigen::Vector2d MyManipulator2D::getJointLocation(const amp::ManipulatorState& s
     double theta2 = M_PI / 3; // Replace with state(1)
     double theta3 = 7 * M_PI / 4; // Replace with state(2)
 
-    // double theta1 = state(0); // Replace with state(0)
-    // double theta2 = state(1); // Replace with state(1)
-    // double theta3 = state(2); // Replace with state(2)
+    // double theta1 = state[0]; // Replace with state(0)
+    // double theta2 = state[1]; // Replace with state(1)
+    // double theta3 = state[2]; // Replace with state(2)
 
     /*
     Testing for IK
@@ -34,6 +34,12 @@ Eigen::Vector2d MyManipulator2D::getJointLocation(const amp::ManipulatorState& s
     double a1 = 0.5;
     double a2 = 1.0;
     double a3 = 0.5;
+
+    if(joint_index == 0)
+    {
+        Eigen::Vector2d base(0,0);
+        return base;
+    }
 
     /*
     Testing for ik
