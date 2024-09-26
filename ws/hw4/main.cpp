@@ -93,6 +93,50 @@ std::vector<Eigen::Vector2d> minkowskiSum(const std::vector<Eigen::Vector2d>& V,
     return result;
 }
 
+Eigen::Vector2d rotatePoint(const Eigen::Vector2d& point, double theta) {
+    Eigen::Matrix2d rotationMatrix;
+    rotationMatrix << std::cos(theta), -std::sin(theta),
+                      std::sin(theta),  std::cos(theta);
+
+    return rotationMatrix * point;
+}
+
+
+std::vector<Eigen::Vector2d> triangleRotation(double theta) {
+    auto obstacle = HW4::getEx1TriangleObstacle().verticesCCW();
+    auto robot = HW4::getEx1TriangleObstacle().verticesCCW();
+
+    for (auto& vertex : robot) {
+        vertex = -vertex;  // Negating each vertex
+        std::cout << "robot vertex " << vertex << std::endl;
+    }
+
+    std::vector<Eigen::Vector2d> points = sortPts(robot);
+    // std::vector<Eigen::Vector2d> cspaceObstacle = minkowskiSum(obstacle, points);
+
+    // double theta = M_PI / 4;  // Rotate by 45 degrees (pi/4 radians)
+
+    // Step 1: Rotate each vertex around the origin
+    for (auto& point : points) {
+        point = rotatePoint(point, theta);
+    }
+
+    // Output the rotated triangle vertices
+    std::cout << "Rotated triangle vertices:\n";
+    for (const auto& point : points) {
+        std::cout << "(" << point.x() << ", " << point.y() << ")\n";
+    }
+    std::vector<Eigen::Vector2d> points2 = sortPts(points);
+    std::vector<Eigen::Vector2d> cspaceObstacle2 = minkowskiSum(obstacle, points2);
+
+
+    std::cout << "C-space obstacle vertices:\n";
+    for (const auto& vertex : cspaceObstacle2) {
+        std::cout << "(" << vertex.x() << ", " << vertex.y() << ")\n";
+    }
+
+    return cspaceObstacle2;
+}
 
 std::vector<Eigen::Vector2d> triangle() {
     auto obstacle = HW4::getEx1TriangleObstacle().verticesCCW();
@@ -103,16 +147,24 @@ std::vector<Eigen::Vector2d> triangle() {
         std::cout << "robot vertex " << vertex << std::endl;
     }
 
-    // std
-    // obstacle.push_back({0,0});
-//     std::vector<Eigen::Vector2d> points = {
-//     Eigen::Vector2d(-1,-2),
-//     Eigen::Vector2d(0,-2),
-//     Eigen::Vector2d(0,0)
-// };
     std::vector<Eigen::Vector2d> points = sortPts(robot);
-
     std::vector<Eigen::Vector2d> cspaceObstacle = minkowskiSum(obstacle, points);
+
+    double theta = M_PI / 4;  // Rotate by 45 degrees (pi/4 radians)
+
+    // Step 1: Rotate each vertex around the origin
+    for (auto& point : points) {
+        point = rotatePoint(point, theta);
+    }
+
+    // Output the rotated triangle vertices
+    std::cout << "Rotated triangle vertices:\n";
+    for (const auto& point : points) {
+        std::cout << "(" << point.x() << ", " << point.y() << ")\n";
+    }
+    std::vector<Eigen::Vector2d> points2 = sortPts(points);
+    std::vector<Eigen::Vector2d> cspaceObstacle2 = minkowskiSum(obstacle, points2);
+
 
     std::cout << "C-space obstacle vertices:\n";
     for (const auto& vertex : cspaceObstacle) {
@@ -131,7 +183,23 @@ int main(int argc, char** argv) {
     std::vector<Eigen::Vector2d> res = triangle();
     Polygon poly = res;
     
+    std::vector<Eigen::Vector2d> tempPolygon;
+    std::vector<Polygon> polygons;
+    std::vector<double> thetas;
+
+    for(double i = 0; i < 2*M_PI; i+=(M_PI/25))
+    {
+        tempPolygon = triangleRotation(i);
+        Polygon caster = tempPolygon;
+        polygons.push_back(caster);
+        thetas.push_back(i);
+    }
+    std::vector<Eigen::Vector2d> res2 = triangleRotation(M_PI/4);
+    Polygon poly2 = res2;
+
     Visualizer::makeFigure({poly});
+    Visualizer::makeFigure({poly2});
+    Visualizer::makeFigure(polygons, thetas);
     // Eigen::Vector2d test(2,0);
 
     // You can visualize your manipulator given an angle state like so:
