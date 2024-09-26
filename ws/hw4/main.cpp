@@ -14,6 +14,38 @@
 using namespace amp;
 
 
+double computeAngle(const Eigen::Vector2d& pivot, const Eigen::Vector2d& point) {
+    Eigen::Vector2d vec = point - pivot;
+    return std::atan2(vec.y(), vec.x());
+}
+
+std::vector<Eigen::Vector2d> sortPts(std::vector<Eigen::Vector2d> points) {
+
+    // Step 1: Find the point with the smallest x and y values (the pivot)
+    Eigen::Vector2d pivot = *std::min_element(points.begin(), points.end(),
+                                              [](const Eigen::Vector2d& p1, const Eigen::Vector2d& p2) {
+                                                  if (p1.x() == p2.x()) return p1.y() < p2.y();
+                                                  return p1.x() < p2.x();
+                                              });
+
+    // Step 2: Sort the remaining points counterclockwise based on their angle with the pivot
+    std::sort(points.begin(), points.end(),
+              [pivot](const Eigen::Vector2d& p1, const Eigen::Vector2d& p2) {
+                  // Compute angles for each point relative to the pivot
+                  double angle1 = computeAngle(pivot, p1);
+                  double angle2 = computeAngle(pivot, p2);
+                  return angle1 < angle2;
+              });
+
+    // Output the sorted points
+    std::cout << "Sorted points counterclockwise:\n";
+    for (const auto& point : points) {
+        std::cout << "(" << point.x() << ", " << point.y() << ")\n";
+    }
+
+    return points;
+}
+
 void getPolygonRotation(double theta)
 {
     // take in theta
@@ -62,7 +94,7 @@ std::vector<Eigen::Vector2d> minkowskiSum(const std::vector<Eigen::Vector2d>& V,
 }
 
 
-void triangle() {
+std::vector<Eigen::Vector2d> triangle() {
     auto obstacle = HW4::getEx1TriangleObstacle().verticesCCW();
     auto robot = HW4::getEx1TriangleObstacle().verticesCCW();
 
@@ -72,12 +104,14 @@ void triangle() {
     }
 
     // std
-    obstacle.push_back({0,0});
-    std::vector<Eigen::Vector2d> points = {
-    Eigen::Vector2d(-1,-2),
-    Eigen::Vector2d(0,-2),
-    Eigen::Vector2d(0,0)
-};
+    // obstacle.push_back({0,0});
+//     std::vector<Eigen::Vector2d> points = {
+//     Eigen::Vector2d(-1,-2),
+//     Eigen::Vector2d(0,-2),
+//     Eigen::Vector2d(0,0)
+// };
+    std::vector<Eigen::Vector2d> points = sortPts(robot);
+
     std::vector<Eigen::Vector2d> cspaceObstacle = minkowskiSum(obstacle, points);
 
     std::cout << "C-space obstacle vertices:\n";
@@ -85,7 +119,7 @@ void triangle() {
         std::cout << "(" << vertex.x() << ", " << vertex.y() << ")\n";
     }
 
-    return;
+    return cspaceObstacle;
 }
 
 int main(int argc, char** argv) {
@@ -94,7 +128,10 @@ int main(int argc, char** argv) {
 
     MyManipulator2D manipulator;
 
-    triangle();
+    std::vector<Eigen::Vector2d> res = triangle();
+    Polygon poly = res;
+    
+    Visualizer::makeFigure({poly});
     // Eigen::Vector2d test(2,0);
 
     // You can visualize your manipulator given an angle state like so:
@@ -120,6 +157,6 @@ int main(int argc, char** argv) {
     Visualizer::showFigures();
 
     // Grade method
-    amp::HW4::grade<MyManipulator2D>(cspace_constructor, "xavier.okeefe@colorado.edu", argc, argv);
+    // amp::HW4::grade<MyManipulator2D>(cspace_constructor, "xavier.okeefe@colorado.edu", argc, argv, );
     return 0;
 }
