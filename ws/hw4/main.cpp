@@ -24,18 +24,23 @@ void getPolygonRotation(double theta)
 }
 
 double calculateAngle(const Eigen::Vector2d& p1, const Eigen::Vector2d& p2) {
-    return atan2(p2.y() - p1.y(), p2.x() - p1.x());
+    Eigen::Vector2d vector_ = p2-p1;
+    double angle = std::atan2(vector_(1), vector_(0));
+    if(angle<0) angle+=2*M_PI;
+    return angle;
 }
 
 std::vector<Eigen::Vector2d> minkowskiSum(const std::vector<Eigen::Vector2d>& V, const std::vector<Eigen::Vector2d>& W) {
     int i = 0, j = 0;
     std::vector<Eigen::Vector2d> result;
+    Eigen::Vector2d base(0,0);
+    // V.push_back(base); 
 
     // Add the first vertex (V1 + W1)
-    // result.push_back(V[i] + W[j]);
+    result.push_back(V[i] + W[j]);
 
     // Process vertices using the given algorithm
-    while (i != V.size() + 1 && j != W.size()+ 1) {
+    while (i < V.size() && j < W.size()+ 2) {
         double angleV = calculateAngle(V[i], V[(i + 1) % V.size()]);
         double angleW = calculateAngle(W[j], W[(j + 1) % W.size()]);
         result.push_back(V[i% V.size()] + W[j% W.size()]);
@@ -52,6 +57,7 @@ std::vector<Eigen::Vector2d> minkowskiSum(const std::vector<Eigen::Vector2d>& V,
 
     }
 
+
     return result;
 }
 
@@ -62,13 +68,23 @@ void triangle() {
 
     for (auto& vertex : robot) {
         vertex = -vertex;  // Negating each vertex
+        std::cout << "robot vertex " << vertex << std::endl;
     }
-    std::vector<Eigen::Vector2d> cspaceObstacle = minkowskiSum(obstacle, robot);
+
+    // std
+    obstacle.push_back({0,0});
+    std::vector<Eigen::Vector2d> points = {
+    Eigen::Vector2d(-1,-2),
+    Eigen::Vector2d(0,-2),
+    Eigen::Vector2d(0,0)
+};
+    std::vector<Eigen::Vector2d> cspaceObstacle = minkowskiSum(obstacle, points);
 
     std::cout << "C-space obstacle vertices:\n";
     for (const auto& vertex : cspaceObstacle) {
         std::cout << "(" << vertex.x() << ", " << vertex.y() << ")\n";
     }
+
     return;
 }
 

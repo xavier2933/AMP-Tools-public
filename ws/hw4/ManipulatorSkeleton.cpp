@@ -4,9 +4,10 @@
 #include <Eigen/Dense>
 
 MyManipulator2D::MyManipulator2D()
-    : LinkManipulator2D({1.0, 1.0}) // Default to a 2-link with all links of 1.0 length
+    : LinkManipulator2D({0.5,1.0,0.5}) // Default to a 2-link with all links of 1.0 length
 {}
 
+// MyManipulator2D::MyManipulator2D(const std::vector<double>& link_lengths): LinkManipulator2D({0.5,1.0,0.5});
 // Override this method for implementing forward kinematics
 Eigen::Vector2d MyManipulator2D::getJointLocation(const amp::ManipulatorState& state, uint32_t joint_index) const {
     // Implement forward kinematics to calculate the joint position given the manipulator state (angles)
