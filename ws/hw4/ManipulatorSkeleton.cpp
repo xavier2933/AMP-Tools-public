@@ -30,11 +30,18 @@ Eigen::Vector2d MyManipulator2D::getJointLocation(const amp::ManipulatorState& s
     // double theta2 = 1.82348; // Replace with state(1)
     // double theta3 = -1.31812; // Replace with state(2)
 
+    // double a1 = 1.0;
+    // double a2 = 0.5;
+    // double a3 = 1.0;
+
 
     // Link lengths
     double a1 = 0.5;
     double a2 = 1.0;
     double a3 = 0.5;
+
+
+
 
     if(joint_index == 0)
     {
@@ -97,7 +104,7 @@ Eigen::Vector2d MyManipulator2D::getJointLocation(const amp::ManipulatorState& s
     // std::cout << "Joint 2 position: " << joint2_position.head<2>().transpose() << std::endl;
     // std::cout << "Joint 3 position: " << joint3_position.head<2>().transpose() << std::endl;
     // std::cout << "End effector position: " << end_effector_position.head<2>().transpose() << std::endl;
-    std::cout << "returning " << joint_positions[joint_index] << std::endl;
+    std::cout << "Point " << joint_index+1 << ": " << joint_positions[joint_index] << std::endl;
 
     // Return the position of the requested joint
     return joint_positions[joint_index];
@@ -114,8 +121,10 @@ joint_angles.setZero();
 double a1 = 1.0; // Length of first link
 double a2 = 0.5; // Length of second link
 double a3 = 1.0; // Length of third link
-double xe = end_effector_location.x();  // End-effector x position
-double ye = end_effector_location.y();  // End-effector y position
+double xe = 2.0;
+double ye = 0.0;
+// double xe = end_effector_location.x();  // End-effector x position
+// double ye = end_effector_location.y();  // End-effector y position
 double gamma = atan2(ye, xe);
 
 // Calculate the wrist position (P2)
@@ -137,7 +146,7 @@ joint_angles(0) = theta1_part1 - theta1_part2;  // Theta1
 // Solve for theta3
 joint_angles(2) = gamma - joint_angles(0) - joint_angles(1);  // Theta3
 
-std::cout << "joint angles: " << joint_angles(0) << " " << joint_angles(1) << " " << joint_angles(2) << std::endl;
+std::cout << "IK Joint angles: " << "Joint 1: " << joint_angles(0) << " Joint 2: " << joint_angles(1) << " Joint 3: " << joint_angles(2) << std::endl;
 
 // Return the computed joint angles
 return joint_angles;

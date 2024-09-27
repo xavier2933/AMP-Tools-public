@@ -38,21 +38,12 @@ std::vector<Eigen::Vector2d> sortPts(std::vector<Eigen::Vector2d> points) {
               });
 
     // Output the sorted points
-    std::cout << "Sorted points counterclockwise:\n";
+    // std::cout << "Sorted points counterclockwise:\n";
     for (const auto& point : points) {
-        std::cout << "(" << point.x() << ", " << point.y() << ")\n";
+        // std::cout << "(" << point.x() << ", " << point.y() << ")\n";
     }
 
     return points;
-}
-
-void getPolygonRotation(double theta)
-{
-    // take in theta
-    // rotate triangle about vertex?
-    // minkowski sum
-    // add to c space with given theta parameter as "z" axis
-    return;
 }
 
 double calculateAngle(const Eigen::Vector2d& p1, const Eigen::Vector2d& p2) {
@@ -108,7 +99,6 @@ std::vector<Eigen::Vector2d> triangleRotation(double theta) {
 
     for (auto& vertex : robot) {
         vertex = -vertex;  // Negating each vertex
-        std::cout << "robot vertex " << vertex << std::endl;
     }
 
     std::vector<Eigen::Vector2d> points = sortPts(robot);
@@ -122,18 +112,18 @@ std::vector<Eigen::Vector2d> triangleRotation(double theta) {
     }
 
     // Output the rotated triangle vertices
-    std::cout << "Rotated triangle vertices:\n";
-    for (const auto& point : points) {
-        std::cout << "(" << point.x() << ", " << point.y() << ")\n";
-    }
+    // // std::cout << "Rotated triangle vertices:\n";
+    // for (const auto& point : points) {
+    //     // std::cout << "(" << point.x() << ", " << point.y() << ")\n";
+    // }
     std::vector<Eigen::Vector2d> points2 = sortPts(points);
     std::vector<Eigen::Vector2d> cspaceObstacle2 = minkowskiSum(obstacle, points2);
 
 
-    std::cout << "C-space obstacle vertices:\n";
-    for (const auto& vertex : cspaceObstacle2) {
-        std::cout << "(" << vertex.x() << ", " << vertex.y() << ")\n";
-    }
+    // // std::cout << "C-space obstacle vertices:\n";
+    // for (const auto& vertex : cspaceObstacle2) {
+    //     // std::cout << "(" << vertex.x() << ", " << vertex.y() << ")\n";
+    // }
 
     return cspaceObstacle2;
 }
@@ -144,7 +134,7 @@ std::vector<Eigen::Vector2d> triangle() {
 
     for (auto& vertex : robot) {
         vertex = -vertex;  // Negating each vertex
-        std::cout << "robot vertex " << vertex << std::endl;
+        // std::cout << "robot vertex " << vertex << std::endl;
     }
 
     std::vector<Eigen::Vector2d> points = sortPts(robot);
@@ -158,18 +148,18 @@ std::vector<Eigen::Vector2d> triangle() {
     }
 
     // Output the rotated triangle vertices
-    std::cout << "Rotated triangle vertices:\n";
-    for (const auto& point : points) {
-        std::cout << "(" << point.x() << ", " << point.y() << ")\n";
-    }
+    // std::cout << "Rotated triangle vertices:\n";
+    // for (const auto& point : points) {
+    //     // std::cout << "(" << point.x() << ", " << point.y() << ")\n";
+    // }
     std::vector<Eigen::Vector2d> points2 = sortPts(points);
     std::vector<Eigen::Vector2d> cspaceObstacle2 = minkowskiSum(obstacle, points2);
 
 
-    std::cout << "C-space obstacle vertices:\n";
-    for (const auto& vertex : cspaceObstacle) {
-        std::cout << "(" << vertex.x() << ", " << vertex.y() << ")\n";
-    }
+    // // std::cout << "C-space obstacle vertices:\n";
+    // for (const auto& vertex : cspaceObstacle) {
+    //     // std::cout << "(" << vertex.x() << ", " << vertex.y() << ")\n";
+    // }
 
     return cspaceObstacle;
 }
@@ -179,8 +169,10 @@ int main(int argc, char** argv) {
     amp::RNG::seed(amp::RNG::randiUnbounded());
 
     MyManipulator2D manipulator;
+    std::vector<double> jointLengths2 = {1.0,0.5,1.0};
+    // MyManipulator2D IKManipulator(jointLengths2);
 
-    std::vector<Eigen::Vector2d> res = triangle();
+    std::vector<Eigen::Vector2d> res = triangle(); // create 1a answer
     Polygon poly = res;
     
     std::vector<Eigen::Vector2d> tempPolygon;
@@ -194,23 +186,23 @@ int main(int argc, char** argv) {
         polygons.push_back(caster);
         thetas.push_back(i);
     }
-    std::vector<Eigen::Vector2d> res2 = triangleRotation(M_PI/4);
-    Polygon poly2 = res2;
 
     Visualizer::makeFigure({poly});
-    Visualizer::makeFigure({poly2});
+    // Visualizer::makeFigure({poly2});
     Visualizer::makeFigure(polygons, thetas);
-    // Eigen::Vector2d test(2,0);
-
-    // You can visualize your manipulator given an angle state like so:
-    // amp::ManipulatorState test_state = manipulator.getConfigurationFromIK(test);
 
     amp::ManipulatorState test_state(3);
     test_state << M_PI / 6, M_PI / 3, 7 * M_PI / 4;
-    // The visualizer uses your implementation of forward kinematics to show the joint positions so you can use that to test your FK algorithm
-    Visualizer::makeFigure(manipulator, test_state); 
 
-    
+    // can't figure out how to plot both arms at the same time, hardcoded values into Forward kinematics algorithm to get plot on submission
+    std::cout << "Forward Kinematics, Point 4 is end effector " << std::endl;
+    Visualizer::makeFigure(manipulator, test_state);
+
+    Eigen::Vector2d tempVecIK(2,0); 
+
+    amp::ManipulatorState IkManip = manipulator.getConfigurationFromIK(tempVecIK);
+
+    // Visualizer::makeFigure(manipulator, IkManip);
 
     // Create the collision space constructor
     std::size_t n_cells = 500;
