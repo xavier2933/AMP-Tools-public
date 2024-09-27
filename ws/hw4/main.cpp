@@ -156,10 +156,10 @@ std::vector<Eigen::Vector2d> triangle() {
     std::vector<Eigen::Vector2d> cspaceObstacle2 = minkowskiSum(obstacle, points2);
 
 
-    // // std::cout << "C-space obstacle vertices:\n";
-    // for (const auto& vertex : cspaceObstacle) {
-    //     // std::cout << "(" << vertex.x() << ", " << vertex.y() << ")\n";
-    // }
+    std::cout << "C-space obstacle vertices:\n";
+    for (const auto& vertex : cspaceObstacle) {
+        std::cout << "(" << vertex.x() << ", " << vertex.y() << ")\n";
+    }
 
     return cspaceObstacle;
 }
@@ -209,14 +209,20 @@ int main(int argc, char** argv) {
     MyManipulatorCSConstructor cspace_constructor(n_cells);
 
     // Create the collision space using a given manipulator and environment
-    std::unique_ptr<amp::GridCSpace2D> cspace = cspace_constructor.construct(manipulator, HW4::getEx3Workspace3());
+    std::unique_ptr<amp::GridCSpace2D> cspace = cspace_constructor.construct(manipulator, HW4::getEx3Workspace1());
+    std::unique_ptr<amp::GridCSpace2D> cspace2 = cspace_constructor.construct(manipulator, HW4::getEx3Workspace2());
+    std::unique_ptr<amp::GridCSpace2D> cspace3 = cspace_constructor.construct(manipulator, HW4::getEx3Workspace3());
+
 
     // You can visualize your cspace 
     Visualizer::makeFigure(*cspace);
+    Visualizer::makeFigure(*cspace2);
+    Visualizer::makeFigure(*cspace3);
+
 
     Visualizer::showFigures();
 
     // Grade method
-    // amp::HW4::grade<MyManipulator2D>(cspace_constructor, "xavier.okeefe@colorado.edu", argc, argv, );
+    // amp::HW4::grade<MyManipulator2D>(cspace_constructor, "xavier.okeefe@colorado.edu", argc, argv);
     return 0;
 }
