@@ -15,6 +15,8 @@ class MyGridCSpace2D : public amp::GridCSpace2D {
 
         // Override this method for determining which cell a continuous point belongs to
         virtual std::pair<std::size_t, std::size_t> getCellFromPoint(double x0, double x1) const override;
+        virtual std::pair<std::size_t, std::size_t> getCellFromPointWorkspace(double x0, double x1) const;
+
 
 };
 
@@ -26,6 +28,8 @@ class MyManipulatorCSConstructor : public amp::ManipulatorCSConstructor {
 
         // Override this method for computing all of the boolean collision values for each cell in the cspace
         virtual std::unique_ptr<amp::GridCSpace2D> construct(const amp::LinkManipulator2D& manipulator, const amp::Environment2D& env) override;
+        virtual std::unique_ptr<amp::GridCSpace2D> constructWorkspace(const amp::LinkManipulator2D& manipulator, const amp::Environment2D& env);
+
         bool is_point_inside_polygon(const amp::Environment2D& environment, const Eigen::Vector2d& point) const;
         bool checkLineSegment(Eigen::Vector2d j1, Eigen::Vector2d j2, const amp::Environment2D& env);
 

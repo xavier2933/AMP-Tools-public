@@ -209,9 +209,16 @@ int main(int argc, char** argv) {
     MyManipulatorCSConstructor cspace_constructor(n_cells);
 
     // Create the collision space using a given manipulator and environment
+
     std::unique_ptr<amp::GridCSpace2D> cspace = cspace_constructor.construct(manipulator, HW4::getEx3Workspace1());
     std::unique_ptr<amp::GridCSpace2D> cspace2 = cspace_constructor.construct(manipulator, HW4::getEx3Workspace2());
     std::unique_ptr<amp::GridCSpace2D> cspace3 = cspace_constructor.construct(manipulator, HW4::getEx3Workspace3());
+
+    // use below to plot workspace
+
+    // std::unique_ptr<amp::GridCSpace2D> cspace = cspace_constructor.constructWorkspace(manipulator, HW4::getEx3Workspace1());
+    // std::unique_ptr<amp::GridCSpace2D> cspace2 = cspace_constructor.constructWorkspace(manipulator, HW4::getEx3Workspace2());
+    // std::unique_ptr<amp::GridCSpace2D> cspace3 = cspace_constructor.constructWorkspace(manipulator, HW4::getEx3Workspace3());
 
 
     // You can visualize your cspace 
@@ -223,6 +230,6 @@ int main(int argc, char** argv) {
     Visualizer::showFigures();
 
     // Grade method
-    // amp::HW4::grade<MyManipulator2D>(cspace_constructor, "xavier.okeefe@colorado.edu", argc, argv);
+    amp::HW4::grade<MyManipulator2D>(cspace_constructor, "xavier.okeefe@colorado.edu", argc, argv);
     return 0;
 }
