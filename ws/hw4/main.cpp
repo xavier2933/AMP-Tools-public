@@ -187,16 +187,16 @@ int main(int argc, char** argv) {
         thetas.push_back(i);
     }
 
-    Visualizer::makeFigure({poly});
+    // Visualizer::makeFigure({poly});
     // Visualizer::makeFigure({poly2});
-    Visualizer::makeFigure(polygons, thetas);
+    // Visualizer::makeFigure(polygons, thetas);
 
     amp::ManipulatorState test_state(3);
     test_state << M_PI / 6, M_PI / 3, 7 * M_PI / 4;
 
     // can't figure out how to plot both arms at the same time, hardcoded values into Forward kinematics algorithm to get plot on submission
     std::cout << "Forward Kinematics, Point 4 is end effector " << std::endl;
-    Visualizer::makeFigure(manipulator, test_state);
+    // Visualizer::makeFigure(manipulator, test_state);
 
     Eigen::Vector2d tempVecIK(2,0); 
 
@@ -222,9 +222,9 @@ int main(int argc, char** argv) {
 
 
     // You can visualize your cspace 
-    Visualizer::makeFigure(*cspace);
-    Visualizer::makeFigure(*cspace2);
-    Visualizer::makeFigure(*cspace3);
+    // Visualizer::makeFigure(*cspace);
+    // Visualizer::makeFigure(*cspace2);
+    // Visualizer::makeFigure(*cspace3);
 
 
     Visualizer::showFigures();
