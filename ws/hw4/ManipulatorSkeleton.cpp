@@ -13,21 +13,19 @@ Eigen::Vector2d MyManipulator2D::getJointLocation(const amp::ManipulatorState& s
 
     std::vector<double> link_lengths_ = getLinkLengths();
 
-    std::cout << "link lengths " << link_lengths_[0] << std::endl;
+    // std::cout << "link lengths " << link_lengths_[0] << std::endl;
     // if (joint_index >= state.size() || joint_index >= link_lengths_.size()) {
     //     throw std::out_of_range("Invalid joint index");
     // }
 
-    // Base transformation (identity matrix)
+    // Base matrix
     Eigen::Matrix3d T = Eigen::Matrix3d::Identity();
 
-    // Homogeneous coordinates of the base
     Eigen::Vector3d base_position(0.0, 0.0, 1.0);
 
-    // Recursively compute the transformation matrices up to joint_index
     for (uint32_t i = 0; i <= joint_index; ++i) {
         double theta = state[i];        // Joint angle
-        double link_length = (i == 0) ? 0.0 : link_lengths_[i - 1];  // Link length for a_{i-1}
+        double link_length = (i == 0) ? 0.0 : link_lengths_[i - 1]; 
 
         Eigen::Matrix3d T_joint;
         T_joint << std::cos(theta), -std::sin(theta), link_length,
@@ -38,51 +36,64 @@ Eigen::Vector2d MyManipulator2D::getJointLocation(const amp::ManipulatorState& s
     }
 
     Eigen::Vector3d joint_position = T * base_position;
-    std::cout << "returning " << joint_position.head<2>() << std::endl;
+    // std::cout << "returning " << joint_position.head<2>() << std::endl;
     // Return the (x, y) part of the position
     return joint_position.head<2>();
 }
 
 // Override this method for implementing inverse kinematics
 amp::ManipulatorState MyManipulator2D::getConfigurationFromIK(const Eigen::Vector2d& end_effector_location) const {
-    // Implement inverse kinematics here
-amp::ManipulatorState joint_angles; 
-joint_angles.resize(3);
-joint_angles.setZero();
+        // Implement inverse kinematics here
+    amp::ManipulatorState joint_angles; 
+    std::vector<double> link_lengths_ = getLinkLengths();
 
-// Link lengths
-double a1 = 1.0; // Length of first link
-double a2 = 0.5; // Length of second link
-double a3 = 1.0; // Length of third link
-double xe = 2.0;
-double ye = 0.0;
-// double xe = end_effector_location.x();  // End-effector x position
-// double ye = end_effector_location.y();  // End-effector y position
-double gamma = atan2(ye, xe);
+    joint_angles.resize(3);
+    joint_angles.setZero();
 
-// Calculate the wrist position (P2)
-double x3 = xe - a3 * cos(gamma);
-double y3 = ye - a3 * sin(gamma);
+    // Link lengths
+    if(link_lengths_.size() == 3)
+    {
+        double a1 = link_lengths_[0]; // Length of first link
+        double a2 = link_lengths_[1]; // Length of second link
+        double a3 = link_lengths_[2]; // Length of third link
+    } else {
+        double a1 = 1.0; // Length of first link
+        double a2 = 0.5; // Length of second link
+        double a3 = 1.0; // Length of third link
+    }
+    double a1 = 1.0; // Length of first link
+    double a2 = 0.5; // Length of second link
+    double a3 = 1.0; // Length of third link
+    // double xe = 2.0;
+    // double ye = 0.0;
+    double xe = end_effector_location.x();  // End-effector x position
+    double ye = end_effector_location.y();  // End-effector y position
+    double gamma = atan2(ye, xe);
 
-// Distance from the base to the wrist position
-double C = std::sqrt(x3 * x3 + y3 * y3);
+    // Calculate the wrist position (P2)
+    double x3 = xe - a3 * cos(gamma);
+    double y3 = ye - a3 * sin(gamma);
 
-// Use the law of cosines to find theta2
-double cos_theta2 = (C * C - a1 * a1 - a2 * a2) / (2 * a1 * a2);
-joint_angles(1) = acos(cos_theta2);  // Theta2
+    // Distance from the base to the wrist position
+    double C = std::sqrt(x3 * x3 + y3 * y3);
 
-// Solve for theta1 using trigonometry
-double theta1_part1 = atan2(y3, x3);
-double theta1_part2 = atan2(a2 * sin(joint_angles(1)), a1 + a2 * cos(joint_angles(1)));
-joint_angles(0) = theta1_part1 - theta1_part2;  // Theta1
+    // Use the law of cosines to find theta2
+    double cos_theta2 = (C * C - a1 * a1 - a2 * a2) / (2 * a1 * a2);
+    cos_theta2 = std::min(1.0, std::max(-1.0, cos_theta2));
+    joint_angles(1) = acos(cos_theta2);  // Theta2
 
-// Solve for theta3
-joint_angles(2) = gamma - joint_angles(0) - joint_angles(1);  // Theta3
+    // Solve for theta1 using trigonometry
+    double theta1_part1 = atan2(y3, x3);
+    double theta1_part2 = atan2(a2 * sin(joint_angles(1)), a1 + a2 * cos(joint_angles(1)));
+    joint_angles(0) = theta1_part1 - theta1_part2;  // Theta1
 
-std::cout << "IK Joint angles: " << "Joint 1: " << joint_angles(0) << " Joint 2: " << joint_angles(1) << " Joint 3: " << joint_angles(2) << std::endl;
+    // Solve for theta3
+    joint_angles(2) = gamma - joint_angles(0) - joint_angles(1);  // Theta3
 
-// Return the computed joint angles
-return joint_angles;
+    std::cout << "IK Joint angles: " << "Joint 1: " << joint_angles(0) << " Joint 2: " << joint_angles(1) << " Joint 3: " << joint_angles(2) << std::endl;
+
+    // Return the computed joint angles
+    return joint_angles;
 
 
 
