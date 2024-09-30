@@ -17,6 +17,14 @@ class MyGDAlgorithm : public amp::GDAlgorithm {
 
 		// Override this method to solve a given problem.
 		virtual amp::Path2D plan(const amp::Problem2D& problem) override;
+		Eigen::Vector2d GetNextStep(amp::Path2D& path, const amp::Problem2D& problem);
+		Eigen::Vector2d GetUAtt(Eigen::Vector2d gradient, amp::Path2D& path, const amp::Problem2D& problem);
+		Eigen::Vector2d GetURep(Eigen::Vector2d gradient, amp::Path2D& path, const amp::Problem2D& problem);
+		bool is_point_inside_polygon(const amp::Problem2D& environment, const Eigen::Vector2d& point) const;
+
+
+
+
 	private:
 		double d_star, zetta, Q_star, eta;
 		// Add additional member variables here...
