@@ -32,8 +32,21 @@ amp::Path2D MyGDAlgorithm::plan(const amp::Problem2D& problem) {
                 if(count > 1000) return path;
             }
         }
+        double alpha = 1.0;
+        Eigen::Vector2d newPos = q + alpha * grad;
 
-        path.waypoints.push_back(q + grad*0.1);
+        while(is_point_inside_polygon(problem, newPos))
+        {
+            alpha*=0.7;
+            newPos = q + alpha*grad;
+            if(alpha< 0.000001)
+            {
+                path.waypoints.push_back(problem.q_goal);
+                return path;
+            }
+        }
+        path.waypoints.push_back(newPos);
+
         // std::cout << "Result: " << GetNextStep(path,problem) << std::endl;
 
         if (path.waypoints.size() > maxSteps) {
@@ -54,9 +67,9 @@ Eigen::Vector2d MyGDAlgorithm::GetUAtt(Eigen::Vector2d gradient, amp::Path2D& pa
 
     if(distToGoal > d_star)
     {
-        gradient += (d_star / distToGoal * (problem.q_goal - path.waypoints.back()));
+        gradient += 0.75*(d_star / distToGoal * (problem.q_goal - path.waypoints.back()));
     } else {
-        gradient += (problem.q_goal - path.waypoints.back());
+        gradient += 0.75*(problem.q_goal - path.waypoints.back());
     }
     return gradient;
 
@@ -107,7 +120,7 @@ Eigen::Vector2d MyGDAlgorithm::GetURep(Eigen::Vector2d gradient, amp::Path2D& pa
         }
         if(distance > Q_star) continue;
         Eigen::Vector2d direction =  (curr - closest)/distance;  // Direction away from the closest point
-        gradient += (0.5) * (0.25) * pow(((1/distance) - (1/Q_star)),2) * direction;
+        gradient += (0.5) * (0.5) * pow(((1/distance) - (1/Q_star)),2) * direction;
         // std::cout << "Gradient: " << gradient << std::endl;
     }
     return gradient;
@@ -119,30 +132,8 @@ Eigen::Vector2d MyGDAlgorithm::GetNextStep(amp::Path2D& path, const amp::Problem
     Eigen::Vector2d Uatt = GetUAtt(gradient, path, problem).normalized();
     Eigen::Vector2d Urep = GetURep(gradient, path, problem).normalized();
 
-    // std::cout << "Uatt: " << Uatt << " Urep: " << Urep << " Gradient = " << Uatt + Urep << std::endl;
 
     gradient = Uatt + Urep;
-    // if (gradU(0) == 0.0 && gradU(1) == 0.0) {
-    //     gradU(0) = amp::RNG::randd(-1.0, 1.0);
-    //     gradU(1) = amp::RNG::randd(-1.0, 1.0);
-    // }
-
-    // Eigen::Vector2d tempNew;
-    // Eigen::Vector2d curr = path.waypoints.back();
-
-    // if (gradient(0) == 0.0 && gradient(1) == 0.0) {
-    //     gradient(0) = amp::RNG::randd(-1.0, 1.0);
-    //     gradient(1) = amp::RNG::randd(-1.0, 1.0);
-    // }
-
-    // double alpha = 0.7;
-    // tempNew = curr - gradient;
-    // while(is_point_inside_polygon(problem, tempNew))
-    // {
-    //     alpha *= 0.7;
-    //     tempNew = curr - gradient * alpha;
-    //     if(alpha < 0.00001) return curr;
-    // }
 
     return gradient;
 }
