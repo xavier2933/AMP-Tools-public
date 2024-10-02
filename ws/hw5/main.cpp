@@ -20,7 +20,7 @@ int main(int argc, char** argv) {
     MyGDAlgorithm algo(1.0, 1.0, 1.0, 1.0);
     amp::Path2D path;
     amp::Problem2D prob;
-    amp::Problem2D problem = HW2::getWorkspace1();   
+    amp::Problem2D problem = HW2::getWorkspace2();   
     amp::Path2D pathHW2 = algo.plan(problem);
     // bool success = HW5::generateAndCheck(algo, pathHW2, problem);
     Visualizer::makeFigure(problem, pathHW2);
