@@ -17,7 +17,9 @@ int main(int argc, char** argv) {
     amp::RNG::seed(amp::RNG::randiUnbounded());
 
     // Test your gradient descent algorithm on a random problem.
-    MyGDAlgorithm algo(1.0, 1.0, 1.0, 1.0);
+    // d_star, zetta, q_star, eta
+    // q_star = 0.5 performed better, but did not solve hw2e2
+    MyGDAlgorithm algo(1.1, 0.8, 1.1, 0.7);
     amp::Path2D path;
     amp::Problem2D prob;
     amp::Problem2D problem = HW2::getWorkspace2();   
