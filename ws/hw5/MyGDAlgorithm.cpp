@@ -45,12 +45,14 @@ amp::Path2D MyGDAlgorithm::plan(const amp::Problem2D& problem) {
 
     // path.waypoints.push_back(Eigen::Vector2d(1.0, 5.0));
     // path.waypoints.push_back(Eigen::Vector2d(3.0, 9.0));
+    std::cout << "Path Length: " << path.length() << std::endl;
     path.waypoints.push_back(problem.q_goal);
     return path;
 }
 
 Eigen::Vector2d MyGDAlgorithm::GetUAtt(Eigen::Vector2d gradient, amp::Path2D& path, const amp::Problem2D& problem)
 {
+
     double distToGoal = (problem.q_goal - path.waypoints.back()).norm();
 
     if(distToGoal > d_star)
@@ -123,28 +125,6 @@ Eigen::Vector2d MyGDAlgorithm::GetNextStep(amp::Path2D& path, const amp::Problem
     // std::cout << "Uatt: " << Uatt << " Urep: " << Urep << " Gradient = " << Uatt + Urep << std::endl;
 
     gradient = Uatt + Urep;
-    // if (gradU(0) == 0.0 && gradU(1) == 0.0) {
-    //     gradU(0) = amp::RNG::randd(-1.0, 1.0);
-    //     gradU(1) = amp::RNG::randd(-1.0, 1.0);
-    // }
-
-    // Eigen::Vector2d tempNew;
-    // Eigen::Vector2d curr = path.waypoints.back();
-
-    // if (gradient(0) == 0.0 && gradient(1) == 0.0) {
-    //     gradient(0) = amp::RNG::randd(-1.0, 1.0);
-    //     gradient(1) = amp::RNG::randd(-1.0, 1.0);
-    // }
-
-    // double alpha = 0.7;
-    // tempNew = curr - gradient;
-    // while(is_point_inside_polygon(problem, tempNew))
-    // {
-    //     alpha *= 0.7;
-    //     tempNew = curr - gradient * alpha;
-    //     if(alpha < 0.00001) return curr;
-    // }
-
     return gradient;
 }
 

@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
     // Test your gradient descent algorithm on a random problem.
     // d_star, zetta, q_star, eta
     // q_star = 0.5 performed better, but did not solve hw2e2
-    MyGDAlgorithm algo(1.1, 0.8, 1.1, 0.7);
+    MyGDAlgorithm algo(1.1, 0.8, 1.1, 1.0);
     amp::Path2D path;
     amp::Problem2D prob;
     amp::Problem2D problem = HW2::getWorkspace2();   
@@ -29,10 +29,10 @@ int main(int argc, char** argv) {
 
 
     // Visualize your potential function
-    // amp::Visualizer::makeFigure(MyPotentialFunction{}, prob.x_min, prob.x_max, prob.y_min, prob.y_max, 20);
+    amp::Visualizer::makeFigure(MyPotentialFunction{}, prob.x_min, prob.x_max, prob.y_min, prob.y_max, 50);
     Visualizer::showFigures();
     
     // Arguments following argv correspond to the constructor arguments of MyGDAlgorithm:
-    HW5::grade<MyGDAlgorithm>("xavier.okeefe@colorado.edu", argc, argv, 1.0, 1.0, 1.0, 1.0);
+        HW5::grade<MyGDAlgorithm>("xavier.okeefe@colorado.edu", argc, argv, 1.1, 0.8, 1.1, 1.0);
     return 0;
 }

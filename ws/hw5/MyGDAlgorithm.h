@@ -32,6 +32,7 @@ class MyGDAlgorithm : public amp::GDAlgorithm {
 
 class MyPotentialFunction : public amp::PotentialFunction2D {
     public:
+	
 		// Returns the potential function value (height) for a given 2D point. 
         virtual double operator()(const Eigen::Vector2d& q) const override {
             return q[0] * q[0] + q[1] * q[1];
