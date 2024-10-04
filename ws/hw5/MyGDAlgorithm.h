@@ -22,23 +22,28 @@ class MyGDAlgorithm : public amp::GDAlgorithm {
 		Eigen::Vector2d GetURep(Eigen::Vector2d gradient, amp::Path2D& path, const amp::Problem2D& problem);
 		bool is_point_inside_polygon(const amp::Problem2D& environment, const Eigen::Vector2d& point) const;
 
-
+		amp::Path2D path_;
+		amp::Problem2D problem_;
 
 
 	private:
 		double d_star, zetta, Q_star, eta;
+
 		// Add additional member variables here...
 };
 
 class MyPotentialFunction : public amp::PotentialFunction2D {
     public:
-	
+		MyPotentialFunction(MyGDAlgorithm* algo) : algo_(algo) {}
 		// Returns the potential function value (height) for a given 2D point. 
         virtual double operator()(const Eigen::Vector2d& q) const override {
             return q[0] * q[0] + q[1] * q[1];
         }
 
 		virtual Eigen::Vector2d getGradient(const Eigen::Vector2d& q) const override {
-            return Eigen::Vector2d(q[0] * q[0],  q[1] * q[1]);
+            return algo_->GetUAtt(q,algo_->path_, algo_->problem_);
         }
+
+	private: 
+    MyGDAlgorithm* algo_;  // Pointer to MyGDAlgorithm
 };
