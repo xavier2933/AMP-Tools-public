@@ -22,7 +22,7 @@ int main(int argc, char** argv) {
     MyGDAlgorithm algo(1.1, 0.8,0.1, 1.0);
     amp::Path2D path;
     amp::Problem2D prob;
-    amp::Problem2D problem = HW2::getWorkspace2();   
+    amp::Problem2D problem = HW5::getWorkspace1();   
     amp::Path2D pathHW2 = algo.plan(problem);
     algo.path_ = pathHW2;
     algo.problem_ = problem;
