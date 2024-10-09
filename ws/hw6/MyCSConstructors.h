@@ -6,6 +6,7 @@
 // Include the correct homework headers
 #include "hw/HW4.h"
 #include "hw/HW6.h"
+#include <queue>
 
 ////////////////////// THIS IS FROM HW4 //////////////////////
 
@@ -57,4 +58,3 @@ class MyWaveFrontAlgorithm : public amp::WaveFrontAlgorithm {
         virtual amp::Path2D planInCSpace(const Eigen::Vector2d& q_init, const Eigen::Vector2d& q_goal, const amp::GridCSpace2D& grid_cspace) override;
 
 };
-
