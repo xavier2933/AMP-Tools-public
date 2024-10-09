@@ -1,7 +1,7 @@
 #include "MyCSConstructors.h"
 
-#define xCellNumber 100
-#define yCellNumber 100
+#define xCellNumber 500
+#define yCellNumber 500
 
 bool is_point_inside_polygon(const amp::Environment2D& environment, const Eigen::Vector2d& point){
     for (const auto& polygon : environment.obstacles) {
@@ -35,8 +35,9 @@ bool is_point_inside_polygon(const amp::Environment2D& environment, const Eigen:
 std::pair<std::size_t, std::size_t> MyGridCSpace2D::getCellFromPoint(double x0, double x1) const {
     // Implment your discretization procedure here, such that the point (x0, x1) lies within the returned cell
     double numCells = xCellNumber;
+    double numCellsY = yCellNumber;
     double cellWidthX = (43.0)/numCells;
-    double cellWidthY = (14.0)/numCells;
+    double cellWidthY = (14.0)/numCellsY;
     // std::cout << "x: " << cellWidthX << " Y: " << cellWidthY << std::endl;
 
     std::size_t cell_x = static_cast<std::size_t>((x0 +7) / cellWidthX);
@@ -44,22 +45,120 @@ std::pair<std::size_t, std::size_t> MyGridCSpace2D::getCellFromPoint(double x0, 
     return {cell_x, cell_y};
 }
 
+std::pair<std::size_t, std::size_t> MyGridCSpace2D::getCellFromPointManip(double x0, double x1) const {
+    // Implment your discretization procedure here, such that the point (x0, x1) lies within the returned cell
+std::size_t cell_x = 0; // x index of cell
+    std::size_t cell_y = 0; // x index of cell
+    // return {cell_x, cell_y};
+
+    int cells = xCellNumber;
+    double cellWidth = 2 * M_PI / cells;
+    int x = 0;
+    int y = 0;
+    double prev = 0;
+    double next = 0 + cellWidth;
+    for (int i = 0; i < cells; i++)
+    {
+        if(x0 <= next && x0 >= prev)
+        {
+            x = i;
+            break;
+        }
+        prev+=cellWidth;
+        next +=cellWidth;
+    }
+    prev = 0;
+    next = 0 + cellWidth;
+    for (int i = 0; i < cells; i++)
+    {
+        if(x1 <= next && x1 >= prev)
+        {
+            y = i;
+            break;
+        }
+        prev+=cellWidth;
+        next +=cellWidth;
+    }
+    cell_x = x;
+    cell_y = y;
+    return {cell_x, cell_y};
+}
+
+std::vector<Eigen::Vector2d> getPoints(double t1, double t2, double a1, double a2)
+{
+    std::vector<Eigen::Vector2d> res;
+    double j1x = a1 * cos(t1);
+    double j1y = a1 * sin(t1);
+    double j2x = j1x + a2 * cos(t1 + t2);
+    double j2y = j1y + a2 * sin(t1 + t2);
+
+    Eigen::Vector2d j0(0.0, 0.0);
+    Eigen::Vector2d j1(j1x , j1y);
+    Eigen::Vector2d j2(j2x, j2y);
+
+    res.push_back(j0);
+    res.push_back(j1);
+    res.push_back(j2);
+
+    return res;
+}
+bool MyManipulatorCSConstructor::checkLineSegment(Eigen::Vector2d j1, Eigen::Vector2d j2, const amp::Environment2D& env)
+{
+    Eigen::Vector2d direction = (j2 - j1).normalized();
+    // std::cout << " Joint 1 : " << j1 << " Joint 2: " << j2 << std::endl;
+    
+    // Use a floating-point value for 'i' to step along the segment
+    for(double i = 0; i <= 1; i += 0.05) // i is now a double, stepping by 0.01
+    {
+        Eigen::Vector2d point = j1 + i * (j2 - j1); // Scale the entire vector, not just normalized direction
+
+        if(is_point_inside_polygon(env, point))
+        {
+            // std::cout << "point is inside polygon" << std::endl;
+            return true;
+        }
+    }
+    
+    return false;
+}
+
 // Override this method for computing all of the boolean collision values for each cell in the cspace
 std::unique_ptr<amp::GridCSpace2D> MyManipulatorCSConstructor::construct(const amp::LinkManipulator2D& manipulator, const amp::Environment2D& env) {
     // Create an object of my custom cspace type (e.g. MyGridCSpace2D) and store it in a unique pointer. 
     // Pass the constructor parameters to std::make_unique()
-    std::unique_ptr<MyGridCSpace2D> cspace_ptr = std::make_unique<MyGridCSpace2D>(m_cells_per_dim, m_cells_per_dim, env.x_min, env.x_max, env.y_min, env.y_max);
+    std::unique_ptr<MyGridCSpace2D> cspace_ptr = std::make_unique<MyGridCSpace2D>(m_cells_per_dim, m_cells_per_dim, 0, 2 * M_PI, 0, 2 * M_PI);
     // In order to use the pointer as a regular GridCSpace2D object, we can just create a reference
     MyGridCSpace2D& cspace = *cspace_ptr;
     std::cout << "Constructing C-space for manipulator" << std::endl;
     // Determine if each cell is in collision or not, and store the values the cspace. This `()` operator comes from DenseArray base class
-    cspace(1, 3) = true;
-    cspace(3, 3) = true;
-    cspace(0, 1) = true;
-    cspace(1, 0) = true;
-    cspace(2, 0) = true;
-    cspace(3, 0) = true;
-    cspace(4, 1) = true;
+
+    double cellWidth = (env.x_max - env.x_min) / m_cells_per_dim;
+    double y = cellWidth / 2;
+    double x = cellWidth / 2;
+    std::vector<double> links = manipulator.getLinkLengths();
+    double a1 = links[0];
+    double a2 = links[1];
+    // Eigen::Vector2d temp(-3.6, -2);
+    // std::cout << "cellwidth" << cellWidth << std::endl;
+
+
+    std::vector<Eigen::Vector2d> res = getPoints(0, M_PI/4,1,1);
+    // std::cout << "last point " << res[2] << std::endl;
+    // bool val = checkLineSegment(res[2],res[1],env);
+    std::pair<std::size_t, std::size_t> cellPoint;
+    for(double t1 = 0; t1 < 2 * M_PI; t1+=0.01)
+    {
+        for(double t2 = 0; t2 < 2 * M_PI; t2+=0.01)
+        {
+            res = getPoints(t1,t2,a1,a2);
+            if(checkLineSegment(res[2],res[1],env) || checkLineSegment(res[1], res[0],env))
+            {
+                auto [cellX,cellY] = cspace.getCellFromPointManip(t1,t2);
+                cspace(cellX,cellY) = true;
+            }
+        }
+    }
+    
 
     // Returning the object of type std::unique_ptr<MyGridCSpace2D> can automatically cast it to a polymorphic base-class pointer of type std::unique_ptr<amp::GridCSpace2D>.
     // The reason why this works is not super important for our purposes, but if you are curious, look up polymorphism!
@@ -82,8 +181,8 @@ std::unique_ptr<amp::GridCSpace2D> MyPointAgentCSConstructor::construct(const am
     // auto[cellX, cellY] = cspace.getCellFromPoint(5,-2.5);
     // std::cout << "point 0,5 is in obstacle? " << is_point_inside_polygon(env, temp) << " with cell " << cellX << " " << cellY << std::endl;
 
-    double cellWidthX = (env.x_max - env.x_min) / m_cells_per_dim;
-        double cellWidthY = (env.y_max - env.y_min) / m_cells_per_dim;
+    double cellWidthX = (env.x_max - env.x_min) / xCellNumber;
+    double cellWidthY = (env.y_max - env.y_min) / yCellNumber;
 
 
     // Eigen::Vector2d temp(-3.6, -2);
@@ -92,7 +191,6 @@ std::unique_ptr<amp::GridCSpace2D> MyPointAgentCSConstructor::construct(const am
 
     for (int i = 0; i < m_cells_per_dim; ++i) {
         double x = env.x_min + (i + 0.5) * cellWidthX;  // Center of the current column of cells
-
         for (int j = 0; j < m_cells_per_dim; ++j) {
             double y = env.y_min + (j + 0.5) * cellWidthY;  // Center of the current row of cells
             Eigen::Vector2d point(x, y);
@@ -135,7 +233,7 @@ amp::Path2D MyWaveFrontAlgorithm::planInCSpace(const Eigen::Vector2d& q_init, co
     auto [goal_x, goal_y] = grid_cspace.getCellFromPoint(q_goal.x(), q_goal.y());
     auto [init_x, init_y] = grid_cspace.getCellFromPoint(q_init.x(), q_init.y());
     // std::cout << "-5,-5 in collision? " << grid_cspace.inCollision(-5,-5) << " " << grid_cspace(0,1)<<std::endl;
-
+    std::cout << "init " << q_init << " end: " << q_goal << std::endl;
     std::size_t numCellsX = xCellNumber;
     std::size_t numCellsY = yCellNumber;
 
@@ -149,6 +247,7 @@ amp::Path2D MyWaveFrontAlgorithm::planInCSpace(const Eigen::Vector2d& q_init, co
     std::vector<Eigen::Vector2d> directions = {
         {1, 0}, {-1, 0}, {0, 1}, {0, -1} // cardinal directions
     };
+
 
     std::queue<std::pair<std::size_t, std::size_t>> queue;
     queue.push({goal_x, goal_y});
@@ -181,7 +280,7 @@ amp::Path2D MyWaveFrontAlgorithm::planInCSpace(const Eigen::Vector2d& q_init, co
 
     auto[resX,resY] = grid_cspace.getCellFromPoint(q_init.x(), q_init.y ());
     path.waypoints.push_back(q_init);
-    std::cout << init_x << " " << init_y << "In collision? " << grid_cspace(init_x, init_y) << " with val " << wavefront[init_x][init_y] << std::endl;
+    // std::cout << init_x << " " << init_y << "In collision? " << grid_cspace(init_x, init_y) << " with val " << wavefront[init_x][init_y] << std::endl;
 
 
     current.x() = resX;
@@ -205,28 +304,27 @@ amp::Path2D MyWaveFrontAlgorithm::planInCSpace(const Eigen::Vector2d& q_init, co
             // std::cout << "nx, ny " << nx << ", " << ny << std::endl;
 
             if (nx >= 0 && nx < numCellsX && ny >= 0 && ny < numCellsY) {
-                std::cout << "Wave val " << wavefront[nx][ny] << "for : " << nx << ", " << ny << std::endl;
+                // std::cout << "Wave val " << wavefront[nx][ny] << "for : " << nx << ", " << ny << std::endl;
 
                 if (wavefront[nx][ny] < min_wave_val && wavefront[nx][ny] != -1) {
                     min_wave_val = wavefront[nx][ny];
                     next = neighbor;
-                    std::cout << "New min wave " << min_wave_val << std::endl;
+                    // std::cout << "New min wave " << min_wave_val << std::endl;
                 }
             }
         }
 
         // Move to the next cell with the smallest wave value
-        std::cout << min_wave_val << " curr " << current_wave_val << std::endl;
+        // std::cout << min_wave_val << " curr " << current_wave_val << std::endl;
         if (min_wave_val < current_wave_val) {
             current = next;
             auto[X,Y] = grid_cspace.getCellFromPoint(current.x(), current.y());
             Eigen::Vector2d temp(current.x(), current.y());
             temp = getPointFromCell(current.x(),current.y());
             path.waypoints.push_back(temp);
-            std::cout << " new cell cspace coords "<< temp.x() << ", " <<temp.y() << std::endl;
+            // std::cout << " new cell cspace coords "<< temp.x() << ", " <<temp.y() << std::endl;
         } else {
-                        std::cout << " breaking " << std::endl;
-
+            std::cout << " breaking " << std::endl;
             break;  // No valid path
         }
     }
