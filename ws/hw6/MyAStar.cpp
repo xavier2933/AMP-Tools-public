@@ -39,13 +39,17 @@ MyAStarAlgo::GraphSearchResult MyAStarAlgo::search(const amp::ShortestPathProble
     g_costs[start_node] = 0.0;
 
     // Push the start node into the priority queue with its heuristic cost
+    // for A*
     open_set.push({heuristic(start_node), start_node});
+    //For Dijkstra
+    // open_set.push({0, start_node});
+    int count = 0;
 
     while (!open_set.empty()) {
         // std::cout << "open set: " << std::endl;
         // printOpenSet(open_set);
         // std::cout << std::endl;
-
+        count++;
         auto [current_f_cost, current_node] = open_set.top();
         std::cout << "popping " << current_node << std::endl;
         open_set.pop();
@@ -61,6 +65,7 @@ MyAStarAlgo::GraphSearchResult MyAStarAlgo::search(const amp::ShortestPathProble
             result.path_cost = g_costs[goal_node];
             result.print();
             result.success = true;
+            std::cout << "Iterations: " << count << std::endl;
             return result;
         }
 
@@ -79,6 +84,8 @@ MyAStarAlgo::GraphSearchResult MyAStarAlgo::search(const amp::ShortestPathProble
 
                 // f_cost = g_cost + heuristic(neighbor)
                 double f_cost = tentative_g_cost + heuristic(neighbor);
+                // double f_cost = tentative_g_cost;
+
                 // std::cout << "for node " << neighbor << " cost: " << f_cost << " edge cost " << edge_cost << std::endl;
                 open_set.push({f_cost, neighbor});
             }

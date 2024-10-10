@@ -1,7 +1,7 @@
 #include "MyCSConstructors.h"
 
-#define xCellNumber 500
-#define yCellNumber 500
+#define xCellNumber 100
+#define yCellNumber 100
 
 bool is_point_inside_polygon(const amp::Environment2D& environment, const Eigen::Vector2d& point){
     for (const auto& polygon : environment.obstacles) {
@@ -42,6 +42,8 @@ std::pair<std::size_t, std::size_t> MyGridCSpace2D::getCellFromPoint(double x0, 
 
     std::size_t cell_x = static_cast<std::size_t>((x0 +7) / cellWidthX);
     std::size_t cell_y = static_cast<std::size_t>((x1 +7) / cellWidthY);
+    if(cell_x >= xCellNumber) cell_x = xCellNumber - 1;
+    if(cell_y >= yCellNumber) cell_y = yCellNumber - 1;
     return {cell_x, cell_y};
 }
 
@@ -102,6 +104,7 @@ std::vector<Eigen::Vector2d> getPoints(double t1, double t2, double a1, double a
 
     return res;
 }
+
 bool MyManipulatorCSConstructor::checkLineSegment(Eigen::Vector2d j1, Eigen::Vector2d j2, const amp::Environment2D& env)
 {
     Eigen::Vector2d direction = (j2 - j1).normalized();
@@ -181,6 +184,8 @@ std::unique_ptr<amp::GridCSpace2D> MyPointAgentCSConstructor::construct(const am
     // auto[cellX, cellY] = cspace.getCellFromPoint(5,-2.5);
     // std::cout << "point 0,5 is in obstacle? " << is_point_inside_polygon(env, temp) << " with cell " << cellX << " " << cellY << std::endl;
 
+    // double cellWidthX = (env.x_max - env.x_min) / xCellNumber;
+    // double cellWidthY = (env.y_max - env.y_min) / yCellNumber;
     double cellWidthX = (env.x_max - env.x_min) / xCellNumber;
     double cellWidthY = (env.y_max - env.y_min) / yCellNumber;
 
@@ -189,9 +194,9 @@ std::unique_ptr<amp::GridCSpace2D> MyPointAgentCSConstructor::construct(const am
     // std::cout << "cellwidth" << cellWidth << std::endl;
 
 
-    for (int i = 0; i < m_cells_per_dim; ++i) {
+    for (int i = 0; i < xCellNumber; ++i) {
         double x = env.x_min + (i + 0.5) * cellWidthX;  // Center of the current column of cells
-        for (int j = 0; j < m_cells_per_dim; ++j) {
+        for (int j = 0; j < yCellNumber; ++j) {
             double y = env.y_min + (j + 0.5) * cellWidthY;  // Center of the current row of cells
             Eigen::Vector2d point(x, y);
 
@@ -199,10 +204,9 @@ std::unique_ptr<amp::GridCSpace2D> MyPointAgentCSConstructor::construct(const am
             if (is_point_inside_polygon(env, point)) {
                 // std::cout << "Point inside obstacle: (" << point.x() << ", " << point.y() << ")" << std::endl;
                 // std::cout << "Marked cell x: " << x << " y: " << y << std::endl;
-
                 // Mark the corresponding cell as occupied
                 auto [cellX, cellY] = cspace.getCellFromPoint(x, y);
-                
+
                 cspace(cellX, cellY) = true;  // Mark cell as occupied
             }
         }
@@ -270,59 +274,39 @@ amp::Path2D MyWaveFrontAlgorithm::planInCSpace(const Eigen::Vector2d& q_init, co
             }
         }
     }
-    // for(int i = 0; i < numCellsX; i++)
-    // {
-    //     for(int j = 0; j < numCellsY; j++)
-    //     {
-    //         std::cout << "cell " << i << ", " << j << "= " << wavefront[i][j] << std::endl;
-    //     }
-    // }
-
     auto[resX,resY] = grid_cspace.getCellFromPoint(q_init.x(), q_init.y ());
     path.waypoints.push_back(q_init);
-    // std::cout << init_x << " " << init_y << "In collision? " << grid_cspace(init_x, init_y) << " with val " << wavefront[init_x][init_y] << std::endl;
-
 
     current.x() = resX;
     current.y() = resY;
+
     while (current != Eigen::Vector2d(goal_x, goal_y)) {
-        // auto[X1,Y1] = grid_cspace.getCellFromPoint(current.x(), current.y());
-
         int current_wave_val = wavefront[init_x][init_y];
-        // std::cout << "Wave val " << current_wave_val << "for : " << init_x << ", " << init_y << std::endl;
 
-        // Find the neighbor with the smallest wave value
         Eigen::Vector2d next = current;
         int min_wave_val = current_wave_val;
-        // std::cout << "current vector " << current << std::endl;
 
         for (const auto& direction : directions) {
             Eigen::Vector2d neighbor = current + direction;
-            // std::cout << "neighbor components " << neighbor << std::endl;
             int nx = static_cast<int>(std::round(neighbor.x()));
             int ny = static_cast<int>(std::round(neighbor.y()));
-            // std::cout << "nx, ny " << nx << ", " << ny << std::endl;
 
             if (nx >= 0 && nx < numCellsX && ny >= 0 && ny < numCellsY) {
-                // std::cout << "Wave val " << wavefront[nx][ny] << "for : " << nx << ", " << ny << std::endl;
 
                 if (wavefront[nx][ny] < min_wave_val && wavefront[nx][ny] != -1) {
                     min_wave_val = wavefront[nx][ny];
                     next = neighbor;
-                    // std::cout << "New min wave " << min_wave_val << std::endl;
                 }
             }
         }
 
         // Move to the next cell with the smallest wave value
-        // std::cout << min_wave_val << " curr " << current_wave_val << std::endl;
         if (min_wave_val < current_wave_val) {
             current = next;
             auto[X,Y] = grid_cspace.getCellFromPoint(current.x(), current.y());
             Eigen::Vector2d temp(current.x(), current.y());
             temp = getPointFromCell(current.x(),current.y());
             path.waypoints.push_back(temp);
-            // std::cout << " new cell cspace coords "<< temp.x() << ", " <<temp.y() << std::endl;
         } else {
             std::cout << " breaking " << std::endl;
             break;  // No valid path
