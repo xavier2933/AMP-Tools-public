@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
     Visualizer::makeFigure(*point_algo.getCSpace(), path); // Visualize path in cspace
 
     ManipulatorTrajectory2Link trajectory = manip_algo.plan(manipulator, manip_problem);
-    // Visualizer::makeFigure(manip_problem, manipulator, trajectory);
+    Visualizer::makeFigure(manip_problem, manipulator, trajectory);
     Visualizer::makeFigure(*manip_algo.getCSpace(), trajectory);
 
     // For Exercise 3, you will need to implement the A* algorithm.
