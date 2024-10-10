@@ -33,6 +33,8 @@ class MyManipulatorCSConstructor : public amp::ManipulatorCSConstructor {
         // To make things easy, add the number of cells as a ctor param so you can easily play around with it
         MyManipulatorCSConstructor(std::size_t cells_per_dim) : m_cells_per_dim(cells_per_dim) {}
         bool checkLineSegment(Eigen::Vector2d j1, Eigen::Vector2d j2, const amp::Environment2D& env);
+        Eigen::Vector2d getJointLocation(const amp::ManipulatorState& state, uint32_t joint_index) const;
+
 
 
         // Override this method for computing all of the boolean collision values for each cell in the cspace
