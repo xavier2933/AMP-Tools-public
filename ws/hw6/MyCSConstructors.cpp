@@ -66,17 +66,23 @@ bool is_point_inside_polygon(const amp::Environment2D& environment, const Eigen:
 // }
 
 std::pair<std::size_t, std::size_t> MyGridCSpace2D::getCellFromPoint(double x0, double x1) const {
-    // Implment your discretization procedure here, such that the point (x0, x1) lies within the returned cell
-    double numCells = xCellNumber;
-    double numCellsY = yCellNumber;
-    double cellWidthX = (43.0)/numCells;
-    double cellWidthY = (14.0)/numCellsY;
+    std::pair<std::size_t, std::size_t> size = this->size();
+    // double numCells = xCellNumber;
+    // double numCellsY = yCellNumber;
+
+    std::pair<double, double> x_lims = x0Bounds();
+    std::pair<double, double> y_lims = x1Bounds();
+
+    double cellWidthX = (x_lims.second - x_lims.first) / size.first;
+    double cellWidthY = (y_lims.second - y_lims.first) / size.second;
     // std::cout << "x: " << cellWidthX << " Y: " << cellWidthY << std::endl;
 
-    std::size_t cell_x = static_cast<std::size_t>((x0 +7) / cellWidthX);
-    std::size_t cell_y = static_cast<std::size_t>((x1 +7) / cellWidthY);
-    if(cell_x >= xCellNumber) cell_x = xCellNumber - 1;
-    if(cell_y >= yCellNumber) cell_y = yCellNumber - 1;
+    std::size_t cell_x = static_cast<std::size_t>((x0 - x_lims.first) / cellWidthX);
+    std::size_t cell_y = static_cast<std::size_t>((x1 - y_lims.first) / cellWidthY);
+
+    if(cell_x >= size.first) cell_x = size.first - 1;
+    if(cell_y >= size.second) cell_y = size.second - 1;
+
     return {cell_x, cell_y};
 }
 
@@ -264,15 +270,20 @@ std::unique_ptr<amp::GridCSpace2D> MyPointAgentCSConstructor::construct(const am
     return cspace_ptr;
 }
 
-Eigen::Vector2d getPointFromCell(int x, int y)
+Eigen::Vector2d getPointFromCell(int x, int y, std::pair<std::size_t, std::size_t> size, std::pair<double, double> x_lims, std::pair<double, double> y_lims)
 {
+    // std::pair<std::size_t, std::size_t> size = this->size();
+
+    // std::pair<double, double> x_lims = x0Bounds();
+    // std::pair<double, double> y_lims = x1Bounds();
+
     double newX, newY;
     int xCells = xCellNumber;
     int yCells = yCellNumber;
-    double xWidth = 43.0/xCells;
-    double yWidth = 14.0/yCells;
-    newX = -7.0 + x * xWidth + (xWidth * 0.5);
-    newY = -7.0 + y * yWidth + (yWidth * 0.5);
+    double xWidth = (x_lims.second - x_lims.first) / size.first;
+    double yWidth = (y_lims.second - y_lims.first) / size.second;
+    newX = x_lims.first + x * xWidth + (xWidth * 0.5);
+    newY = y_lims.first + y * yWidth + (yWidth * 0.5);
     Eigen::Vector2d res(newX, newY);
     return res;
 
@@ -299,15 +310,24 @@ amp::Path2D MyWaveFrontAlgorithm::planInCSpace(const Eigen::Vector2d& q_init, co
     amp::Path2D path;
     auto [goal_x, goal_y] = grid_cspace.getCellFromPoint(q_goal.x(), q_goal.y());
     auto [init_x, init_y] = grid_cspace.getCellFromPoint(q_init.x(), q_init.y());
-    
 
-    if(isManipulator) {
+    std::pair<std::size_t, std::size_t> size = grid_cspace.size();
+
+
+    std::pair<double, double> x_lims = grid_cspace.x0Bounds();
+    std::pair<double, double> y_lims = grid_cspace.x1Bounds();
+
+
+
+    if(false) {
         std::cout <<"running manipulator " << std::endl;
-        std::tie(goal_x, goal_y) = getCellFromPointManipNoClass(M_PI, 0.0);  // reuse goal_x and goal_y
-        std::tie(init_x, init_y) = getCellFromPointManipNoClass(0.0, 0.0);  // reuse init_x and init_y
-        std::cout << q_init.x() << ", " << q_init.y() << " init in if statement " << std::endl;
-        std::cout << "Init " << init_x << ", " <<init_y << std::endl;
-        std::cout << "Goals " << goal_x << " , " << goal_y << std::endl;
+        std::tie(goal_x, goal_y) = getCellFromPointManipNoClass(q_goal.x(), q_goal.y());  // reuse goal_x and goal_y
+        std::tie(init_x, init_y) = getCellFromPointManipNoClass(q_init.x(), q_init.y());  // reuse init_x and init_y
+        // std::tie(goal_x, goal_y) = getCellFromPointManipNoClass(M_PI, 0.0);  // reuse goal_x and goal_y
+        // std::tie(init_x, init_y) = getCellFromPointManipNoClass(0.0, 0.0);  // reuse init_x and init_y
+        // std::cout << q_init.x() << ", " << q_init.y() << " init in if statement " << std::endl;
+        // std::cout << "Init " << init_x << ", " <<init_y << std::endl;
+        // std::cout << "Goals " << goal_x << " , " << goal_y << std::endl;
     }
 
     // std::cout << "-5,-5 in collision? " << grid_cspace.inCollision(-5,-5) << " " << grid_cspace(0,1)<<std::endl;
@@ -315,13 +335,31 @@ amp::Path2D MyWaveFrontAlgorithm::planInCSpace(const Eigen::Vector2d& q_init, co
     std::size_t numCellsX = xCellNumber;
     std::size_t numCellsY = yCellNumber;
 
-    std::cout << "Init " << init_x << ", " <<init_y <<std::endl;
-    std::cout << "Goals " << goal_x << " , " << goal_y << std::endl;
+    // std::cout << "Init " << init_x << ", " <<init_y <<std::endl;
+    // std::cout << "Goals " << goal_x << " , " << goal_y << std::endl;
 
     std::vector<std::vector<int>> wavefront(numCellsX, std::vector<int>(numCellsY, -1));
     // Initialize current position as Eigen::Vector2d
     Eigen::Vector2d current(init_x, init_y);
-    path.waypoints.push_back(q_init);
+    // path.waypoints.push_back(q_init);
+    if(isManipulator)
+    {
+        double newXInit = q_init.x();
+        double newYInit = q_init.y();
+        if (q_init.x() < 0) 
+        {
+            newXInit = newXInit * -1;
+        }
+        if (q_init.y() < 0)
+        {
+            newYInit = newYInit * -1;
+        }
+        Eigen::Vector2d tempInit(newXInit, newYInit);
+        path.waypoints.push_back(tempInit);
+    } else {
+        path.waypoints.push_back(q_init);
+    }
+    std::cout << "Q_INIT " << q_init << std::endl;
 
     // Possible movement directions: right, left, up, down, and diagonals
     std::vector<Eigen::Vector2d> directions = {
@@ -352,13 +390,13 @@ amp::Path2D MyWaveFrontAlgorithm::planInCSpace(const Eigen::Vector2d& q_init, co
         }
     }
     std::pair<std::size_t, std::size_t> initPoint = grid_cspace.getCellFromPoint(q_init.x(), q_init.y ());
-    if(isManipulator)
-    {
-        initPoint = getCellFromPointManipNoClass(q_init.x(), q_init.y ());
-    }
-    path.waypoints.push_back(q_init);
+    // if(isManipulator)
+    // {
+    //     initPoint = getCellFromPointManipNoClass(q_init.x(), q_init.y ());
+    // }
+    // path.waypoints.push_back(q_init);
 
-    std::cout << "q_init is " << q_init.x() << ", ' " << q_init.y() << std::endl;
+    // std::cout << "q_init is " << q_init.x() << ", ' " << q_init.y() << std::endl;
 
     while (current != Eigen::Vector2d(goal_x, goal_y)) {
         int current_wave_val = wavefront[init_x][init_y];
@@ -381,19 +419,11 @@ amp::Path2D MyWaveFrontAlgorithm::planInCSpace(const Eigen::Vector2d& q_init, co
         }
 
         // Move to the next cell with the smallest wave value
-        if ((min_wave_val < current_wave_val) && isManipulator) {
-            current = next;
-            auto[X,Y] = getCellFromPointManipNoClass(current.x(), current.y());
-            Eigen::Vector2d temp(current.x(), current.y());
-            temp = getPointFromCellManip(current.x(),current.y());
-            // std::cout << temp.x() << " Y, " << temp.y() << std::endl;
-
-            path.waypoints.push_back(temp);
-        } else if((min_wave_val < current_wave_val) && !isManipulator){
+        if ((min_wave_val < current_wave_val)) {
             current = next;
             auto[X,Y] = grid_cspace.getCellFromPoint(current.x(), current.y());
             Eigen::Vector2d temp(current.x(), current.y());
-            temp = getPointFromCell(current.x(),current.y());
+            temp = getPointFromCell(current.x(),current.y(), size, x_lims, y_lims);
             path.waypoints.push_back(temp);
         } else {
             std::cout << " breaking " << std::endl;
@@ -406,10 +436,10 @@ amp::Path2D MyWaveFrontAlgorithm::planInCSpace(const Eigen::Vector2d& q_init, co
         auto[tempX1, tempY1] = getCellFromPointManipNoClass(M_PI,0.0);
         tempGoal.x() = tempX1;
         tempGoal.y() = tempY1;
-        path.waypoints.push_back(tempGoal);  // Add the goal at the end of the path
+        // path.waypoints.push_back(tempGoal);  // Add the goal at the end of the path
         Eigen::Vector2d bounds0 = Eigen::Vector2d(0.0, 0.0);
         Eigen::Vector2d bounds1 = Eigen::Vector2d(2*M_PI, 2*M_PI);
-        amp::unwrapWaypoints(path.waypoints, bounds0, bounds1);
+        // amp::unwrapWaypoints(path.waypoints, bounds0, bounds1);
         return path;
     }
     path.waypoints.push_back(q_goal);  // Add the goal at the end of the path

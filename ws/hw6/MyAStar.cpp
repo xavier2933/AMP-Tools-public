@@ -51,7 +51,7 @@ MyAStarAlgo::GraphSearchResult MyAStarAlgo::search(const amp::ShortestPathProble
         // std::cout << std::endl;
         count++;
         auto [current_f_cost, current_node] = open_set.top();
-        std::cout << "popping " << current_node << std::endl;
+        // std::cout << "popping " << current_node << std::endl;
         open_set.pop();
 
         if (current_node == goal_node) {
