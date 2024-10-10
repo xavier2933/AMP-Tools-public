@@ -309,10 +309,10 @@ amp::Path2D MyWaveFrontAlgorithm::planInCSpace(const Eigen::Vector2d& q_init, co
     // Get the start and goal cells from the continuous points
     amp::Path2D path;
     std::cout << "init \n" << q_init << " end: \n" << q_goal << std::endl;
-    // auto [goal_x, goal_y] = grid_cspace.getCellFromPoint(q_goal.x(), q_goal.y());
-    // auto [init_x, init_y] = grid_cspace.getCellFromPoint(q_init.x(), q_init.y());
-    auto [goal_x, goal_y] = grid_cspace.getCellFromPoint(0.0, 0.0);
-    auto [init_x, init_y] = grid_cspace.getCellFromPoint(M_PI, 0.0);
+    auto [goal_x, goal_y] = grid_cspace.getCellFromPoint(q_goal.x(), q_goal.y());
+    auto [init_x, init_y] = grid_cspace.getCellFromPoint(q_init.x(), q_init.y());
+    // auto [goal_x, goal_y] = grid_cspace.getCellFromPoint(0.0, 0.0);
+    // auto [init_x, init_y] = grid_cspace.getCellFromPoint(M_PI, 0.0);
 
     std::pair<std::size_t, std::size_t> size = grid_cspace.size();
 
@@ -324,10 +324,10 @@ amp::Path2D MyWaveFrontAlgorithm::planInCSpace(const Eigen::Vector2d& q_init, co
 
     if(false) {
         std::cout <<"running manipulator " << std::endl;
-        std::tie(goal_x, goal_y) = getCellFromPointManipNoClass(q_goal.x(), q_goal.y());  // reuse goal_x and goal_y
-        std::tie(init_x, init_y) = getCellFromPointManipNoClass(q_init.x(), q_init.y());  // reuse init_x and init_y
-        // std::tie(goal_x, goal_y) = getCellFromPointManipNoClass(0.0, 0.0);  // reuse goal_x and goal_y
-        // std::tie(init_x, init_y) = getCellFromPointManipNoClass(M_PI, 0.0);  // reuse init_x and init_y
+        // std::tie(goal_x, goal_y) = getCellFromPointManipNoClass(q_goal.x(), q_goal.y());  // reuse goal_x and goal_y
+        // std::tie(init_x, init_y) = getCellFromPointManipNoClass(q_init.x(), q_init.y());  // reuse init_x and init_y
+        std::tie(goal_x, goal_y) = getCellFromPointManipNoClass(0.0, 0.0);  // reuse goal_x and goal_y
+        std::tie(init_x, init_y) = getCellFromPointManipNoClass(M_PI, 0.0);  // reuse init_x and init_y
         // std::cout << q_init.x() << ", " << q_init.y() << " init in if statement " << std::endl;
         // std::cout << "Init " << init_x << ", " <<init_y << std::endl;
         // std::cout << "Goals " << goal_x << " , " << goal_y << std::endl;
@@ -345,29 +345,30 @@ amp::Path2D MyWaveFrontAlgorithm::planInCSpace(const Eigen::Vector2d& q_init, co
     // Initialize current position as Eigen::Vector2d
     Eigen::Vector2d current(init_x, init_y);
     // path.waypoints.push_back(q_init);
-    // if(isManipulator)
-    // {
-    //     double newXInit = q_init.x();
-    //     newXInit = std::fmod(newXInit, 2*M_PI);
+    Eigen::Vector2d tempInit;
+    if(isManipulator)
+    {
+        double newXInit = q_init.x();
+        newXInit = std::fmod(newXInit, 2*M_PI);
         
-    //     double newYInit = q_init.y();
-    //     newYInit = std::fmod(newYInit, 2*M_PI);
+        double newYInit = q_init.y();
+        newYInit = std::fmod(newYInit, 2*M_PI);
 
-    //     if (q_init.x() < 0) 
-    //     {
-    //         newXInit = newXInit + (2*M_PI);
-    //     }
-    //     if (q_init.y() < 0)
-    //     {
-    //         newYInit = newYInit * (2*M_PI);
-    //     }
-    //     Eigen::Vector2d tempInit(newXInit, newYInit);
-    //     path.waypoints.push_back(tempInit);
-    //         std::cout << "Q_INIT " << newXInit << " Y " << newYInit << std::endl;
+        if (q_init.x() < 0) 
+        {
+            newXInit = newXInit + (2*M_PI);
+        }
+        if (q_init.y() < 0)
+        {
+            newYInit = newYInit * (2*M_PI);
+        }
+        tempInit = Eigen::Vector2d(newXInit, newYInit);
+        path.waypoints.push_back(tempInit);
+            std::cout << "Q_INIT " << newXInit << " Y " << newYInit << std::endl;
 
-    // } else {
-    //     path.waypoints.push_back(q_init);
-    // }
+    } else {
+        path.waypoints.push_back(q_init);
+    }
 
     // Possible movement directions: right, left, up, down, and diagonals
     std::vector<Eigen::Vector2d> directions = {
@@ -447,36 +448,14 @@ amp::Path2D MyWaveFrontAlgorithm::planInCSpace(const Eigen::Vector2d& q_init, co
         // path.waypoints.push_back(tempGoal);  // Add the goal at the end of the path
         Eigen::Vector2d bounds0 = Eigen::Vector2d(0.0, 0.0);
         Eigen::Vector2d bounds1 = Eigen::Vector2d(2*M_PI, 2*M_PI);
+        path.waypoints.erase(path.waypoints.begin());
+        std::reverse(path.waypoints.begin(), path.waypoints.end());
+        path.waypoints.insert(path.waypoints.begin(), tempInit);
+        path.waypoints.push_back(q_goal);  // Add the goal at the end of the path
+
         amp::unwrapWaypoints(path.waypoints, bounds0, bounds1);
         return path;
     }
-        std::cout << "SEG FAULT? " << std::endl;
-    // if(isManipulator)
-    // {
-    //     double newXInit = q_init.x();
-    //     newXInit = std::fmod(newXInit, 2*M_PI);
-        
-    //     double newYInit = q_init.y();
-    //     newYInit = std::fmod(newYInit, 2*M_PI);
-
-    //     if (q_init.x() < 0) 
-    //     {
-    //         newXInit = newXInit + (2*M_PI);
-    //     }
-    //     if (q_init.y() < 0)
-    //     {
-    //         newYInit = newYInit * (2*M_PI);
-    //     }
-    //     Eigen::Vector2d tempInit(newXInit, newYInit);
-    //     path.waypoints.push_back(tempInit);
-    //         std::cout << "Q_INIT " << newXInit << " Y " << newYInit << std::endl;
-    //         std::reverse(path.waypoints.begin(), path.waypoints.end());
-
-    // } else {
-    //     continue;
-    //     // path.waypoints.push_back(q_init);
-    // }
-
     path.waypoints.push_back(q_goal);  // Add the goal at the end of the path
 
     return path;
