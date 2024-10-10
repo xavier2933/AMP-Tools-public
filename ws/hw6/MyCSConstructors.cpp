@@ -381,13 +381,19 @@ amp::Path2D MyWaveFrontAlgorithm::planInCSpace(const Eigen::Vector2d& q_init, co
         }
 
         // Move to the next cell with the smallest wave value
-        if (min_wave_val < current_wave_val) {
+        if ((min_wave_val < current_wave_val) && isManipulator) {
             current = next;
             auto[X,Y] = getCellFromPointManipNoClass(current.x(), current.y());
             Eigen::Vector2d temp(current.x(), current.y());
             temp = getPointFromCellManip(current.x(),current.y());
-            std::cout << temp.x() << " Y, " << temp.y() << std::endl;
+            // std::cout << temp.x() << " Y, " << temp.y() << std::endl;
 
+            path.waypoints.push_back(temp);
+        } else if((min_wave_val < current_wave_val) && !isManipulator){
+            current = next;
+            auto[X,Y] = grid_cspace.getCellFromPoint(current.x(), current.y());
+            Eigen::Vector2d temp(current.x(), current.y());
+            temp = getPointFromCell(current.x(),current.y());
             path.waypoints.push_back(temp);
         } else {
             std::cout << " breaking " << std::endl;

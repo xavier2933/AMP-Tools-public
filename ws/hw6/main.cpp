@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
 
     // You will need your 2-link manipulator from HW4
     MyManipulator2D manipulator;
-    Problem2D point_problem = HW2::getWorkspace1();
+    Problem2D point_problem = HW2::getWorkspace2();
     Problem2D manip_problem = HW6::getHW4Problem2();
 
     
@@ -35,9 +35,9 @@ int main(int argc, char** argv) {
     ManipulatorWaveFrontAlgorithm manip_algo(wf_algo, manipulator_ctor);
 
     // Return a path for the point-agent and manipulator using c-space planning.
-    // Path2D path = point_algo.plan(point_problem);
-    // Visualizer::makeFigure(point_problem, path); // Visualize path in workspace
-    // Visualizer::makeFigure(*point_algo.getCSpace(), path); // Visualize path in cspace
+    Path2D path = point_algo.plan(point_problem);
+    Visualizer::makeFigure(point_problem, path); // Visualize path in workspace
+    Visualizer::makeFigure(*point_algo.getCSpace(), path); // Visualize path in cspace
 
     ManipulatorTrajectory2Link trajectory = manip_algo.plan(manipulator, manip_problem);
     Visualizer::makeFigure(manip_problem, manipulator, trajectory);
