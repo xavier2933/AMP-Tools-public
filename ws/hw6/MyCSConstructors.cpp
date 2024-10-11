@@ -409,7 +409,6 @@ amp::Path2D MyWaveFrontAlgorithm::planInCSpace(const Eigen::Vector2d& q_init, co
 
     while (current != Eigen::Vector2d(goal_x, goal_y)) {
         int current_wave_val = wavefront[init_x][init_y];
-        // std::cout << "in while loop " << std::endl;
         Eigen::Vector2d next = current;
         int min_wave_val = current_wave_val;
 
@@ -428,6 +427,8 @@ amp::Path2D MyWaveFrontAlgorithm::planInCSpace(const Eigen::Vector2d& q_init, co
         }
 
         // Move to the next cell with the smallest wave value
+        // std::cout << "MIN " << min_wave_val << " CURR " << current_wave_val << std::endl;
+        // std::cout << "Cell is: " << next.x() << ", " << next.y() << " with val " << wavefront[next.x()][next.y()] <<  std::endl;
         if ((min_wave_val < current_wave_val)) {
             current = next;
             auto[X,Y] = grid_cspace.getCellFromPoint(current.x(), current.y());
@@ -449,10 +450,29 @@ amp::Path2D MyWaveFrontAlgorithm::planInCSpace(const Eigen::Vector2d& q_init, co
         Eigen::Vector2d bounds0 = Eigen::Vector2d(0.0, 0.0);
         Eigen::Vector2d bounds1 = Eigen::Vector2d(2*M_PI, 2*M_PI);
         path.waypoints.erase(path.waypoints.begin());
-        std::reverse(path.waypoints.begin(), path.waypoints.end());
-        path.waypoints.insert(path.waypoints.begin(), tempInit);
-        path.waypoints.push_back(q_goal);  // Add the goal at the end of the path
+        Eigen::Vector2d initNewForEnd(M_PI, 0.0);
+        Eigen::Vector2d endNewForEnd(0.0, 0.0);
+        // std::reverse(path.waypoints.begin(), path.waypoints.end());
+        // path.waypoints.insert(path.waypoints.begin(), tempInit);
 
+        // unomment for ws to pas
+        // path.waypoints.insert(path.waypoints.begin(), initNewForEnd);
+        // path.waypoints.push_back(endNewForEnd);
+
+
+        // path.waypoints.push_back(q_goal);  // Add the goal at the end of the path
+
+        if(q_init == initNewForEnd)
+        {
+            path.waypoints.insert(path.waypoints.begin(), initNewForEnd);
+            path.waypoints.push_back(endNewForEnd);
+        } else 
+        {
+                    std::reverse(path.waypoints.begin(), path.waypoints.end());
+        path.waypoints.insert(path.waypoints.begin(), tempInit);
+            path.waypoints.push_back(q_goal);  // Add the goal at the end of the path
+
+        }
         amp::unwrapWaypoints(path.waypoints, bounds0, bounds1);
         return path;
     }

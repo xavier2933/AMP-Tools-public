@@ -28,21 +28,19 @@ MyAStarAlgo::GraphSearchResult MyAStarAlgo::search(const amp::ShortestPathProble
     using QueueEntry = std::pair<double, amp::Node>;
     std::priority_queue<QueueEntry, std::vector<QueueEntry>, std::greater<>> open_set;
 
-    // Maps to store the g_cost (cost from start) and the came_from path
-    std::unordered_map<amp::Node, double> g_costs;
+    std::unordered_map<amp::Node, double> costs;
     std::unordered_map<amp::Node, amp::Node> came_from;
 
     amp::Node start_node = problem.init_node;
     amp::Node goal_node = problem.goal_node;
 
-    // Initialize the g_cost for the start node
-    g_costs[start_node] = 0.0;
+    costs[start_node] = 0.0;
 
-    // Push the start node into the priority queue with its heuristic cost
     // for A*
     open_set.push({heuristic(start_node), start_node});
     //For Dijkstra
     // open_set.push({0, start_node});
+
     int count = 0;
 
     while (!open_set.empty()) {
@@ -50,7 +48,7 @@ MyAStarAlgo::GraphSearchResult MyAStarAlgo::search(const amp::ShortestPathProble
         // printOpenSet(open_set);
         // std::cout << std::endl;
         count++;
-        auto [current_f_cost, current_node] = open_set.top();
+         auto [current_f_cost, current_node] = open_set.top();
         // std::cout << "popping " << current_node << std::endl;
         open_set.pop();
 
@@ -62,33 +60,29 @@ MyAStarAlgo::GraphSearchResult MyAStarAlgo::search(const amp::ShortestPathProble
             }
             result.node_path.push_back(start_node);
             std::reverse(result.node_path.begin(), result.node_path.end());
-            result.path_cost = g_costs[goal_node];
+            result.path_cost = costs[goal_node];
             result.print();
             result.success = true;
             std::cout << "Iterations: " << count << std::endl;
             return result;
         }
 
-        // Explore all the neighbors of the current node
         for (const auto& neighbor : problem.graph->children(current_node)) {
             double edge_cost = problem.graph->outgoingEdges(current_node)[&neighbor - &problem.graph->children(current_node)[0]];
 
-            // Calculate the tentative g_cost (total cost from start node to neighbor)
-            double tentative_g_cost = g_costs[current_node] + edge_cost;
+            double temp_cost = costs[current_node] + edge_cost;
 
-            // Check if neighbor is being visited for the first time or if the new path is cheaper
-            if (g_costs.find(neighbor) == g_costs.end() || tentative_g_cost < g_costs[neighbor]) {
-                // Update g_cost and came_from
-                g_costs[neighbor] = tentative_g_cost;
-                came_from[neighbor] = current_node;
+        if (costs.find(neighbor) == costs.end() || temp_cost < costs[neighbor]) {
+            costs[neighbor] = temp_cost;
+            came_from[neighbor] = current_node;
 
-                // f_cost = g_cost + heuristic(neighbor)
-                double f_cost = tentative_g_cost + heuristic(neighbor);
-                // double f_cost = tentative_g_cost;
+            // f_cost = costs + heuristic(neighbor)
+            double f_cost = temp_cost + heuristic(neighbor);
+            // double f_cost = temp_cost;
 
-                // std::cout << "for node " << neighbor << " cost: " << f_cost << " edge cost " << edge_cost << std::endl;
-                open_set.push({f_cost, neighbor});
-            }
+            // std::cout << "for node " << neighbor << " cost: " << f_cost << " edge cost " << edge_cost << std::endl;
+            open_set.push({f_cost, neighbor});
+        }
         }
     }
 
