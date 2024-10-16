@@ -222,14 +222,14 @@ int main(int argc, char** argv) {
 
 
     // You can visualize your cspace 
-    // Visualizer::makeFigure(*cspace);
-    // Visualizer::makeFigure(*cspace2);
-    // Visualizer::makeFigure(*cspace3);
+    Visualizer::makeFigure(*cspace);
+    Visualizer::makeFigure(*cspace2);
+    Visualizer::makeFigure(*cspace3);
 
 
     Visualizer::showFigures();
 
     // Grade method
-    amp::HW4::grade<MyManipulator2D>(cspace_constructor, "xavier.okeefe@colorado.edu", argc, argv);
+    // amp::HW4::grade<MyManipulator2D>(cspace_constructor, "xavier.okeefe@colorado.edu", argc, argv);
     return 0;
 }
