@@ -30,6 +30,6 @@ int main(int argc, char** argv) {
     Visualizer::showFigures();
 
     // Grade method
-    HW7::grade<MyPRM, MyRRT>("xavier.okeefe@colorado.edu", argc, argv, std::make_tuple(), std::make_tuple());
+    // HW7::grade<MyPRM, MyRRT>("xavier.okeefe@colorado.edu", argc, argv, std::make_tuple(), std::make_tuple());
     return 0;
 }

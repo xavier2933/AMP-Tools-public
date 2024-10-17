@@ -12,6 +12,7 @@ class MyPRM : public amp::PRM2D {
         void getGraph(const amp::Problem2D& problem);
         Eigen::Vector2d getRandomConfig(const amp::Problem2D& problem);
 
+        amp::Path2D smoothPath(amp::Path2D& original_path, const amp::Problem2D& problem);
 
         std::shared_ptr<amp::Graph<double>> graphPtr = std::make_shared<amp::Graph<double>>();
         std::map<amp::Node, Eigen::Vector2d> nodes;

@@ -7,6 +7,7 @@
 #include <functional>
 #include <iostream>
 
+// Need this in order to use map with Eigen::Vector2d
 auto vector2dCompare = [](const Eigen::Vector2d& a, const Eigen::Vector2d& b) {
     if (a.x() == b.x()) {
         return a.y() < b.y();
@@ -90,6 +91,7 @@ amp::Path2D MyPRM::plan(const amp::Problem2D& problem) {
         path.waypoints.push_back(nodes[node]);
     }
     path.waypoints.push_back(problem.q_goal);
+    path = smoothPath(path, problem);
 
     return path;
 }
@@ -141,9 +143,36 @@ bool hasCollision(Eigen::Vector2d j1, Eigen::Vector2d j2, const amp::Problem2D& 
     return false;
 }
 
+amp::Path2D MyPRM::smoothPath(amp::Path2D& original_path, const amp::Problem2D& problem)
+{
+    if(original_path.waypoints.empty()) return original_path;
+    std::cout << "Running smoothed path" << std::endl;
+    amp::Path2D smoothedPath;
+    smoothedPath.waypoints.push_back(original_path.waypoints[0]);
+    int i = 0;
+    while(i < original_path.waypoints.size()-1)
+    {
+        int j = original_path.waypoints.size() - 1;
+        while(j> i+1)
+        {
+            if(!hasCollision(original_path.waypoints[i], original_path.waypoints[j], problem))
+            {
+                break;
+            }
+            j--;
+        }
+        smoothedPath.waypoints.push_back(original_path.waypoints[j]);
+        i = j;
+    }
+    return smoothedPath;
+    
+}
+
 Eigen::Vector2d MyPRM::getRandomConfig(const amp::Problem2D& problem) {
     double x = problem.x_min + (problem.x_max - problem.x_min) * ((double) rand() / RAND_MAX);
     double y = problem.y_min + (problem.y_max - problem.y_min) * ((double) rand() / RAND_MAX);
+    // double x = -1 + (11 + 1) * ((double) rand() / RAND_MAX);
+
     // double y = -3 + (6) * ((double) rand() / RAND_MAX);
 
     return {x, y};
@@ -152,7 +181,7 @@ Eigen::Vector2d MyPRM::getRandomConfig(const amp::Problem2D& problem) {
 void MyPRM::getGraph(const amp::Problem2D& problem)
 {
 
-    double r = 10;
+    double r = 2;
     int n = 1000;
 
     std::vector<Eigen::Vector2d> validSamples;
@@ -190,6 +219,7 @@ void MyPRM::getGraph(const amp::Problem2D& problem)
             double dist = (validSamples[i] - validSamples[j]).norm();
             if (dist <= r && !hasCollision(validSamples[i], validSamples[j], problem)) {
                 graphPtr->connect(i, j, dist);  // Connect nodes with no obstacle in between
+                graphPtr->connect(j,i,dist);
             } else {
             // std::cout << "NOT ADDINF POINT " << validSamples[i] << std::endl; 
         }
