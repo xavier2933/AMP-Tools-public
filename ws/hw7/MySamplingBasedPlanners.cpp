@@ -7,6 +7,9 @@
 #include <functional>
 #include <iostream>
 
+
+// double MyPRM::pathLength = 0.0;
+
 // Need this in order to use map with Eigen::Vector2d
 auto vector2dCompare = [](const Eigen::Vector2d& a, const Eigen::Vector2d& b) {
     if (a.x() == b.x()) {
@@ -45,7 +48,7 @@ std::vector<amp::Node> AStar(amp::Node start_node, amp::Node goal_node, std::sha
             nodez.push_back(start_node);
             std::reverse(nodez.begin(), nodez.end());
             path_cost = costs[goal_node];
-            std::cout << "Iterations: " << count << std::endl;
+            // std::cout << "Iterations: " << count << std::endl;
             return nodez;
         }
 
@@ -70,28 +73,45 @@ std::vector<amp::Node> AStar(amp::Node start_node, amp::Node goal_node, std::sha
 
     }
 
-    std::cout << "No path found to the goal node." << std::endl;
+    // std::cout << "No path found to the goal node." << std::endl;
 
     return nodez;
 }
 
-// Implement your PRM algorithm here
-amp::Path2D MyPRM::plan(const amp::Problem2D& problem) {
+
+amp::Path2D MyPRM::plan(const amp::Problem2D& problem)
+{
     amp::Path2D path;
-    getGraph(problem);
+    path.waypoints.push_back(problem.q_init);
+    path.waypoints.push_back(problem.q_goal);
+    return path;
+}
+// Implement your PRM algorithm here
+amp::Path2D MyPRM::plan2(const amp::Problem2D& problem, int n, double r) {
+    amp::Path2D path;
+    getGraph(problem, n, r);
     amp::Node start_node = graphPtr->nodes()[0];
     amp::Node end_node = graphPtr->nodes().back();
     // std::cout << "START NODE " << nodes[start_node] << " END NODE " << nodes[end_node] << std::endl;
     // auto res = temp.outgoingEdges();
     // std::cout << "NODE 1 " << graphPtr->children(start_node)[0] << " WITH EDGES " << graphPtr->outgoingEdges(start_node)[0] << std::endl;
-    path.waypoints.push_back(problem.q_init);
     std::vector<amp::Node> res = AStar(start_node, end_node, graphPtr);
+    if(res.empty())
+    {
+        // std::cout << "empty path " << n << " r " << r << std::endl;
+        return path;
+    }
+    path.waypoints.push_back(problem.q_init);
+
     for(auto & node : res)
     {
         path.waypoints.push_back(nodes[node]);
     }
     path.waypoints.push_back(problem.q_goal);
-    path = smoothPath(path, problem);
+    // std::cout << "path length: " << path.length() << std::endl;
+    pathLength += path.length();
+    // path = smoothPath(path, problem);
+    // std::cout << "smoothed path length: " << path.length() << std::endl;
 
     return path;
 }
@@ -178,11 +198,11 @@ Eigen::Vector2d MyPRM::getRandomConfig(const amp::Problem2D& problem) {
     return {x, y};
 }
 
-void MyPRM::getGraph(const amp::Problem2D& problem)
+void MyPRM::getGraph(const amp::Problem2D& problem, int n, double r)
 {
 
-    double r = 2;
-    int n = 1000;
+    // double r = 2.0;
+    // int n = 500;
 
     std::vector<Eigen::Vector2d> validSamples;
     validSamples.push_back(problem.q_init);
@@ -205,7 +225,7 @@ void MyPRM::getGraph(const amp::Problem2D& problem)
             // std::cout << "NOT ADDINF POINT " << sample << std::endl; 
         }
     }
-    std::cout << "VALID SAMPLES SIZE " << validSamples.size() << std::endl;
+    // std::cout << "VALID SAMPLES SIZE " << validSamples.size() << std::endl;
     validSamples.push_back(problem.q_goal);
 
     // Step 2: Add valid configurations as nodes in the graph
