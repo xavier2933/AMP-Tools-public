@@ -7,6 +7,13 @@
 #include <functional>
 #include <iostream>
 
+auto vector2dCompare = [](const Eigen::Vector2d& a, const Eigen::Vector2d& b) {
+    if (a.x() == b.x()) {
+        return a.y() < b.y();
+    }
+    return a.x() < b.x();
+};
+
 std::vector<amp::Node> AStar(amp::Node start_node, amp::Node goal_node, std::shared_ptr<amp::Graph<double>> graphPtr)
 {
     std::vector<amp::Node> nodez;
@@ -70,11 +77,12 @@ std::vector<amp::Node> AStar(amp::Node start_node, amp::Node goal_node, std::sha
 // Implement your PRM algorithm here
 amp::Path2D MyPRM::plan(const amp::Problem2D& problem) {
     amp::Path2D path;
+    getGraph(problem);
     amp::Node start_node = graphPtr->nodes()[0];
     amp::Node end_node = graphPtr->nodes().back();
-    std::cout << "START NODE " << nodes[start_node] << " END NODE " << nodes[end_node] << std::endl;
+    // std::cout << "START NODE " << nodes[start_node] << " END NODE " << nodes[end_node] << std::endl;
     // auto res = temp.outgoingEdges();
-    std::cout << "NODE 1 " << graphPtr->children(start_node)[0] << " WITH EDGES " << graphPtr->outgoingEdges(start_node)[0] << std::endl;
+    // std::cout << "NODE 1 " << graphPtr->children(start_node)[0] << " WITH EDGES " << graphPtr->outgoingEdges(start_node)[0] << std::endl;
     path.waypoints.push_back(problem.q_init);
     std::vector<amp::Node> res = AStar(start_node, end_node, graphPtr);
     for(auto & node : res)
@@ -145,7 +153,7 @@ void MyPRM::getGraph(const amp::Problem2D& problem)
 {
 
     double r = 1;
-    int n = 200;
+    int n = 500;
 
     std::vector<Eigen::Vector2d> validSamples;
     validSamples.push_back(problem.q_init);
@@ -192,14 +200,109 @@ void MyPRM::getGraph(const amp::Problem2D& problem)
     // graphPtr->print();
 }
 
+Eigen::Vector2d MyRRT::getNearestConfig(Eigen::Vector2d temp, std::vector<Eigen::Vector2d> tree)
+{
+    double minDist = std::numeric_limits<double>::infinity();
+    double dist = 0.0;
+    Eigen::Vector2d closest;
+    for(auto& node : tree)
+    {
+        dist = (temp - node).norm();
+        if (dist < minDist)
+        {
+            closest = node;
+            minDist = dist;
+        }
+    }
+    return closest;
+}
 
+Eigen::Vector2d MyRRT::getRandomConfig(const amp::Problem2D& problem) {
+    double x = problem.x_min + (problem.x_max - problem.x_min) * ((double) rand() / RAND_MAX);
+    double y = problem.y_min + (problem.y_max - problem.y_min) * ((double) rand() / RAND_MAX);
+    // double y = -3 + (6) * ((double) rand() / RAND_MAX);
+    return {x, y};
+}
+
+bool subpathCollsionFree(Eigen::Vector2d rand, Eigen::Vector2d near, const amp::Problem2D& problem, double step)
+{
+    Eigen::Vector2d newEnd = near + (rand - near).normalized() * step;
+    bool res = hasCollision(rand, newEnd, problem);
+    return res;
+}   
 
 // Implement your RRT algorithm here
 amp::Path2D MyRRT::plan(const amp::Problem2D& problem) {
     amp::Path2D path;
+    std::cout << "Running RRT " << std::endl;
     path.waypoints.push_back(problem.q_init);
-    // nodes[0] = problem.q_init;
+    nodes[0] = problem.q_init;
+    
+    Eigen::Vector2d temp;
+    Eigen::Vector2d near;
+    std::vector<Eigen::Vector2d> tree;
+    std::map<Eigen::Vector2d, Eigen::Vector2d, decltype(vector2dCompare)> prevMap(vector2dCompare); // current, node before
+    tree.push_back(problem.q_init);
+    
+    int count = 0;
+    int n = 5000;
+    double step = 0.25;
+    int goalBiasCount = 0;
+    bool goalFound = false;
+    Eigen::Vector2d goalNode;
 
-    path.waypoints.push_back(problem.q_goal);
+    while(count < n) {
+        temp = getRandomConfig(problem);
+        
+        if(goalBiasCount == 20) {
+            near = problem.q_goal;
+            goalBiasCount = 0;
+        } else {
+            near = getNearestConfig(temp, tree);
+        }
+
+        goalBiasCount++;
+        
+        if(!subpathCollsionFree(temp, near, problem, step)) {
+            Eigen::Vector2d newEnd = near + (temp - near).normalized() * step;
+            tree.push_back(newEnd);
+            
+            // Track the parent of the new node
+            prevMap[newEnd] = near;
+
+            // std::cout << "map " << newEnd.transpose() << " maps to " << near.transpose() << std::endl;
+            
+            // Check if we've reached the goal
+            if((newEnd - problem.q_goal).norm() < 0.2) {
+                std::cout << "goal found " << std::endl;
+                goalFound = true;
+                goalNode = newEnd;
+                break;
+            }
+        }
+        count++;
+    }
+
+    if (goalFound) {
+        // Backtrack from the goal to the start using the map
+        Eigen::Vector2d currentNode = goalNode;
+        // path.waypoints.push_back(problem.q_goal);
+        int newCount = 0;
+        while (currentNode != problem.q_init) {
+            path.waypoints.push_back(currentNode);
+            currentNode = prevMap[currentNode];  // Move to the parent node
+            newCount++;
+            if (newCount < n)
+            {
+                std::cout << "breaking early" << std::endl;
+                break;
+            }
+        }
+        path.waypoints.push_back(problem.q_init);  // Finally, add the start
+        std::reverse(path.waypoints.begin(), path.waypoints.end());  // Reverse to get the path from start to goal
+    } else {
+        std::cout << "RRT did not find a solution" << std::endl;
+    }
+
     return path;
 }

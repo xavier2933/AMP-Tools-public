@@ -14,8 +14,8 @@ int main(int argc, char** argv) {
     // prm.graphPtr = std::make_shared<amp::Graph<double>>();
 
     // Test PRM on Workspace1 of HW2
-    Problem2D problem = HW5::getWorkspace1();
-    prm.getGraph(problem);
+    Problem2D problem = HW2::getWorkspace2();
+    // prm.getGraph(problem);
 
     Visualizer::makeFigure(problem, prm.plan(problem), *prm.graphPtr, prm.nodes);
 
@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
     // prm.getGraph(problem);
 
     HW7::generateAndCheck(rrt, path, problem);
-    Visualizer::makeFigure(problem, path, *prm.graphPtr, prm.nodes);
+    Visualizer::makeFigure(problem, path, *rrt.graphPtr, prm.nodes);
     Visualizer::showFigures();
 
     // Grade method
