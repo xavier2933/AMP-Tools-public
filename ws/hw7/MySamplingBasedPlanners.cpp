@@ -152,8 +152,8 @@ Eigen::Vector2d MyPRM::getRandomConfig(const amp::Problem2D& problem) {
 void MyPRM::getGraph(const amp::Problem2D& problem)
 {
 
-    double r = 1;
-    int n = 500;
+    double r = 10;
+    int n = 1000;
 
     std::vector<Eigen::Vector2d> validSamples;
     validSamples.push_back(problem.q_init);
@@ -235,7 +235,7 @@ bool subpathCollsionFree(Eigen::Vector2d rand, Eigen::Vector2d near, const amp::
 amp::Path2D MyRRT::plan(const amp::Problem2D& problem) {
     amp::Path2D path;
     std::cout << "Running RRT " << std::endl;
-    path.waypoints.push_back(problem.q_init);
+    // path.waypoints.push_back(problem.q_init);
     nodes[0] = problem.q_init;
     
     Eigen::Vector2d temp;
@@ -245,21 +245,23 @@ amp::Path2D MyRRT::plan(const amp::Problem2D& problem) {
     tree.push_back(problem.q_init);
     
     int count = 0;
-    int n = 5000;
+    int n = 10000;
     double step = 0.25;
     int goalBiasCount = 0;
     bool goalFound = false;
     Eigen::Vector2d goalNode;
 
     while(count < n) {
-        temp = getRandomConfig(problem);
         
         if(goalBiasCount == 20) {
-            near = problem.q_goal;
+            temp = problem.q_goal;
             goalBiasCount = 0;
         } else {
-            near = getNearestConfig(temp, tree);
+            temp = getRandomConfig(problem);
+
         }
+        near = getNearestConfig(temp, tree);
+
 
         goalBiasCount++;
         
@@ -288,11 +290,13 @@ amp::Path2D MyRRT::plan(const amp::Problem2D& problem) {
         Eigen::Vector2d currentNode = goalNode;
         // path.waypoints.push_back(problem.q_goal);
         int newCount = 0;
+        path.waypoints.push_back(problem.q_goal);
         while (currentNode != problem.q_init) {
             path.waypoints.push_back(currentNode);
             currentNode = prevMap[currentNode];  // Move to the parent node
             newCount++;
-            if (newCount < n)
+            // std::cout << "current Node " << currentNode << std::endl;
+            if (newCount > n)
             {
                 std::cout << "breaking early" << std::endl;
                 break;
