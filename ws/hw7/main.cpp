@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
     // std::vector<double> pathLengths;
     // std::vector<double> times;
     // Test PRM on Workspace1 of HW2
-    Problem2D problem = HW5::getWorkspace1();
+    Problem2D problem = HW2::getWorkspace1();
     int n = 200;
     double r = 2;
     std::vector<std::pair<int, double>> vals = {

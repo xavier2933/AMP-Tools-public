@@ -110,7 +110,7 @@ amp::Path2D MyPRM::plan2(const amp::Problem2D& problem, int n, double r) {
     path.waypoints.push_back(problem.q_goal);
     // std::cout << "path length: " << path.length() << std::endl;
     pathLength += path.length();
-    // path = smoothPath(path, problem);
+    path = smoothPath(path, problem);
     // std::cout << "smoothed path length: " << path.length() << std::endl;
 
     return path;
@@ -166,7 +166,7 @@ bool hasCollision(Eigen::Vector2d j1, Eigen::Vector2d j2, const amp::Problem2D& 
 amp::Path2D MyPRM::smoothPath(amp::Path2D& original_path, const amp::Problem2D& problem)
 {
     if(original_path.waypoints.empty()) return original_path;
-    std::cout << "Running smoothed path" << std::endl;
+    // std::cout << "Running smoothed path" << std::endl;
     amp::Path2D smoothedPath;
     smoothedPath.waypoints.push_back(original_path.waypoints[0]);
     int i = 0;
