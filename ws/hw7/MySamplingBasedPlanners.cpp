@@ -109,8 +109,10 @@ amp::Path2D MyPRM::plan2(const amp::Problem2D& problem, int n, double r) {
     }
     path.waypoints.push_back(problem.q_goal);
     // std::cout << "path length: " << path.length() << std::endl;
-    pathLength += path.length();
+    // pathLength += path.length();
     path = smoothPath(path, problem);
+    pathLength += path.length();
+
     // std::cout << "smoothed path length: " << path.length() << std::endl;
 
     return path;
@@ -295,7 +297,7 @@ amp::Path2D MyRRT::plan(const amp::Problem2D& problem) {
     tree.push_back(problem.q_init);
     
     int count = 0;
-    int n = 10000;
+    int n = 5000;
     double step = 0.25;
     int goalBiasCount = 0;
     bool goalFound = false;
@@ -325,7 +327,7 @@ amp::Path2D MyRRT::plan(const amp::Problem2D& problem) {
             // std::cout << "map " << newEnd.transpose() << " maps to " << near.transpose() << std::endl;
             
             // Check if we've reached the goal
-            if((newEnd - problem.q_goal).norm() < 0.2) {
+            if((newEnd - problem.q_goal).norm() < 0.5) {
                 std::cout << "goal found " << std::endl;
                 goalFound = true;
                 goalNode = newEnd;
@@ -354,6 +356,7 @@ amp::Path2D MyRRT::plan(const amp::Problem2D& problem) {
         }
         path.waypoints.push_back(problem.q_init);  // Finally, add the start
         std::reverse(path.waypoints.begin(), path.waypoints.end());  // Reverse to get the path from start to goal
+        std::cout << "Path length " << path.length();
     } else {
         std::cout << "RRT did not find a solution" << std::endl;
     }
