@@ -14,4 +14,10 @@ class MyPRM : public amp::PRM2D {
 class MyRRT : public amp::GoalBiasRRT2D {
     public:
         virtual amp::Path2D plan(const amp::Problem2D& problem) override; 
+        Eigen::Vector2d getRandomConfig(const amp::Problem2D& problem);
+        Eigen::Vector2d getNearestConfig(Eigen::Vector2d temp, std::vector<Eigen::Vector2d>);
+
+
+        std::shared_ptr<amp::Graph<double>> graphPtr = std::make_shared<amp::Graph<double>>();
+        std::map<amp::Node, Eigen::Vector2d> nodes;
 };

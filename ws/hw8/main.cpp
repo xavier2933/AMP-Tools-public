@@ -20,7 +20,7 @@ void timer_example() {
 
 int main(int argc, char** argv) {
     // Run timer example (useful for benchmarking)
-    timer_example();
+    // timer_example();
 
     // Initialize Workspace 1 with 3 agents
     amp::RNG::seed(amp::RNG::randiUnbounded());
@@ -41,6 +41,6 @@ int main(int argc, char** argv) {
 
     // Visualize and grade methods
     Visualizer::showFigures();
-    HW8::grade<MyCentralPlanner, MyDecentralPlanner>("firstName.lastName@colorado.edu", argc, argv, std::make_tuple(), std::make_tuple());
+    // HW8::grade<MyCentralPlanner, MyDecentralPlanner>("xavier.okeefe@colorado.edu", argc, argv, std::make_tuple(), std::make_tuple());
     return 0;
 }
