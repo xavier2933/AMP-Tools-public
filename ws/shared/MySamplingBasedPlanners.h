@@ -7,17 +7,18 @@
 #include "hw/HW7.h"
 
 class MyPRM : public amp::PRM2D {
-    public:
-        virtual amp::Path2D plan(const amp::Problem2D& problem) override; 
+public:
+    virtual amp::Path2D plan(const amp::Problem2D& problem);
 };
 
 class MyRRT : public amp::GoalBiasRRT2D {
-    public:
-        virtual amp::Path2D plan(const amp::Problem2D& problem) override; 
-        Eigen::Vector2d getRandomConfig(const amp::Problem2D& problem);
-        Eigen::Vector2d getNearestConfig(Eigen::Vector2d temp, std::vector<Eigen::Vector2d>);
+public:
+    virtual amp::Path2D plan(const amp::Problem2D& problem) override;
+    virtual amp::MultiAgentPath2D planHigherD(const amp::MultiAgentProblem2D& problem);
 
+    Eigen::VectorXd getRandomConfig(const amp::MultiAgentProblem2D& problem);
+    Eigen::VectorXd getNearestConfig(const Eigen::VectorXd& temp, const std::vector<Eigen::VectorXd>& tree);
 
-        std::shared_ptr<amp::Graph<double>> graphPtr = std::make_shared<amp::Graph<double>>();
-        std::map<amp::Node, Eigen::Vector2d> nodes;
+    std::shared_ptr<amp::Graph<double>> graphPtr = std::make_shared<amp::Graph<double>>();
+    std::map<amp::Node, Eigen::VectorXd> nodes;
 };

@@ -100,27 +100,33 @@ std::vector<amp::Polygon> expandObstacles(const amp::MultiAgentProblem2D& proble
     return expanded_obstacles;
 }
 
+
+/*
+Need to check that each robot is not in collision with obstacle
+Then for every pair of robots check if they're in collsion
+*/
 amp::MultiAgentPath2D MyCentralPlanner::plan(const amp::MultiAgentProblem2D& problem) {
     amp::MultiAgentPath2D path;
     amp::MultiAgentProblem2D newProblem = problem;
     newProblem.obstacles = expandObstacles(newProblem, 0.5);
-    for (const amp::CircularAgentProperties& agent : problem.agent_properties) {
-        MyRRT rrt;
-        amp::Path2D agent_path;
-        amp::Problem2D prob;
-        prob.obstacles = newProblem.obstacles;
-        prob.x_max = problem.x_max;
-        prob.x_min = problem.x_min;
-        prob.y_max = problem.y_max;
-        prob.y_min = problem.y_min;
-        prob.q_init = agent.q_init;
-        prob.q_goal = agent.q_goal;
+    // for (const amp::CircularAgentProperties& agent : problem.agent_properties) {
+    //     MyRRT rrt;
+    //     amp::Path2D agent_path;
+    //     amp::Problem2D prob;
+    //     prob.obstacles = newProblem.obstacles;
+    //     prob.x_max = problem.x_max;
+    //     prob.x_min = problem.x_min;
+    //     prob.y_max = problem.y_max;
+    //     prob.y_min = problem.y_min;
+    //     prob.q_init = agent.q_init;
+    //     prob.q_goal = agent.q_goal;
 
-        agent_path = rrt.plan(prob);
+    //     agent_path = rrt.plan(prob);
 
-        path.agent_paths.push_back(agent_path);
-    }
-    // MyRRT rrt;
+    //     path.agent_paths.push_back(agent_path);
+    // }
+    MyRRT rrt;
+    path = rrt.planHigherD(newProblem);
     // amp::Path2D agent_path;
     // amp::Problem2D prob;
     // prob.obstacles = problem.obstacles;
