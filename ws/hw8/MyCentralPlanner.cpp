@@ -156,13 +156,29 @@ amp::MultiAgentPath2D MyDecentralPlanner::plan(const amp::MultiAgentProblem2D& p
     amp::MultiAgentPath2D path;
     amp::MultiAgentProblem2D newProblem = problem;
     newProblem.obstacles = expandObstacles(newProblem, 0.5);
-    for (const amp::CircularAgentProperties& agent : problem.agent_properties) {
+    // for (const amp::CircularAgentProperties& agent : problem.agent_properties) {
+    //     amp::Path2D agent_path;
+    //     agent_path.waypoints = {agent.q_init, agent.q_goal};
+    //     path.agent_paths.push_back(agent_path);
+    // }
+    MyRRT rrt;
+    for(int i = 0; i < problem.agent_properties.size(); i++)
+    {
         amp::Path2D agent_path;
-        agent_path.waypoints = {agent.q_init, agent.q_goal};
+        amp::Problem2D prob;
+        prob.obstacles = newProblem.obstacles;
+        prob.x_max = problem.x_max;
+        prob.x_min = problem.x_min;
+        prob.y_max = problem.y_max;
+        prob.y_min = problem.y_min;
+        prob.q_init = problem.agent_properties[i].q_init;
+        prob.q_goal = problem.agent_properties[i].q_goal;
+        agent_path = rrt.plan(prob);
         path.agent_paths.push_back(agent_path);
     }
     // amp::Path2D agent_path;
     // amp::Problem2D prob;
+
     // prob.obstacles = newProblem.obstacles;
     // prob.x_max = problem.x_max;
     // prob.x_min = problem.x_min;
@@ -170,8 +186,19 @@ amp::MultiAgentPath2D MyDecentralPlanner::plan(const amp::MultiAgentProblem2D& p
     // prob.y_min = problem.y_min;
     // prob.q_init = problem.agent_properties[0].q_init;
     // prob.q_goal = problem.agent_properties[0].q_goal;
-    // agent_path = MyRRT::plan(prob);
+    // agent_path = rrt.plan(prob);
     // path.agent_paths.push_back(agent_path);
+    //     prob.q_init = problem.agent_properties[1].q_init;
+    // prob.q_goal = problem.agent_properties[1].q_goal;
+    // agent_path = rrt.plan(prob);
+    // path.agent_paths.push_back(agent_path);
+    // prob.q_init = problem.agent_properties[2].q_init;
+    // prob.q_goal = problem.agent_properties[2].q_goal;
+    // agent_path = rrt.plan(prob);
+    // path.agent_paths.push_back(agent_path);
+    std::cout << "num agents " << problem.agent_properties.size() << std::endl;
+
+
     return path;
 }
 
