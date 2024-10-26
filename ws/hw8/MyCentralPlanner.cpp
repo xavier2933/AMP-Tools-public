@@ -127,15 +127,15 @@ amp::MultiAgentPath2D MyCentralPlanner::plan(const amp::MultiAgentProblem2D& pro
     // }
     MyRRT rrt;
     path = rrt.planHigherD(newProblem);
-    // amp::Path2D agent_path;
-    // amp::Problem2D prob;
-    // prob.obstacles = problem.obstacles;
-    // prob.x_max = problem.x_max;
-    // prob.x_min = problem.x_min;
-    // prob.y_max = problem.y_max;
-    // prob.y_min = problem.y_min;
-    // prob.q_init = problem.agent_properties[0].q_init;
-    // prob.q_goal = problem.agent_properties[0].q_goal;
+    amp::Path2D agent_path;
+    amp::Problem2D prob;
+    prob.obstacles = problem.obstacles;
+    prob.x_max = problem.x_max;
+    prob.x_min = problem.x_min;
+    prob.y_max = problem.y_max;
+    prob.y_min = problem.y_min;
+    prob.q_init = problem.agent_properties[0].q_init;
+    prob.q_goal = problem.agent_properties[0].q_goal;
 
     // agent_path = rrt.plan(prob);
 
@@ -144,14 +144,39 @@ amp::MultiAgentPath2D MyCentralPlanner::plan(const amp::MultiAgentProblem2D& pro
     return path;
 }
 
+/*
+New function for RRT while checking against other paths
+As paths are made, add to map<double, Eigen::Vector2d>
+Standardize time from 1->n iterations, one step to one node is 1 time step, everything after is at goal
+Check obstacles, if in collision at that time step with any other path?
+    - this doesn't seem right, do I need to parameterize wrt distance?
+*/
+
 amp::MultiAgentPath2D MyDecentralPlanner::plan(const amp::MultiAgentProblem2D& problem) {
     amp::MultiAgentPath2D path;
+    amp::MultiAgentProblem2D newProblem = problem;
+    newProblem.obstacles = expandObstacles(newProblem, 0.5);
     for (const amp::CircularAgentProperties& agent : problem.agent_properties) {
         amp::Path2D agent_path;
         agent_path.waypoints = {agent.q_init, agent.q_goal};
         path.agent_paths.push_back(agent_path);
     }
+    // amp::Path2D agent_path;
+    // amp::Problem2D prob;
+    // prob.obstacles = newProblem.obstacles;
+    // prob.x_max = problem.x_max;
+    // prob.x_min = problem.x_min;
+    // prob.y_max = problem.y_max;
+    // prob.y_min = problem.y_min;
+    // prob.q_init = problem.agent_properties[0].q_init;
+    // prob.q_goal = problem.agent_properties[0].q_goal;
     // agent_path = MyRRT::plan(prob);
     // path.agent_paths.push_back(agent_path);
     return path;
 }
+
+/*
+Decentralized
+std::vector<map<time step (node #), Eigen::Vector2d point>>
+
+*/

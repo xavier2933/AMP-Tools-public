@@ -16,6 +16,7 @@ public:
     virtual amp::Path2D plan(const amp::Problem2D& problem) override;
     virtual amp::MultiAgentPath2D planHigherD(const amp::MultiAgentProblem2D& problem);
 
+
     Eigen::VectorXd getRandomConfig(const amp::MultiAgentProblem2D& problem);
     Eigen::VectorXd getNearestConfig(const Eigen::VectorXd& temp, const std::vector<Eigen::VectorXd>& tree);
 

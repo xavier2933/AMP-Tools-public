@@ -19,13 +19,8 @@ auto vectorXdCompare = [](const Eigen::VectorXd& a, const Eigen::VectorXd& b) {
     return false;  // If all components are equal
 };
 
-// Implement your PRM algorithm here
-amp::Path2D MyPRM::plan(const amp::Problem2D& problem) {
-    amp::Path2D path;
-    path.waypoints.push_back(problem.q_init);
-    path.waypoints.push_back(problem.q_goal);
-    return path;
-}
+
+
 bool isInCollision(const amp::MultiAgentProblem2D& environment, const Eigen::VectorXd& point) {
     for (const auto& polygon : environment.obstacles) {
         const std::vector<Eigen::Vector2d>& vertices = polygon.verticesCCW();
@@ -126,6 +121,23 @@ bool GOOOOOOOOOL(Eigen::VectorXd curr, Eigen::VectorXd GOL, int numAgents, doubl
     return messi;
 }
 
+bool areRobotsInCollision(const Eigen::VectorXd& states, double radius) {
+    int numRobots = states.size() / 2;
+    double collisionDistance = 2 * radius;
+
+    for (int i = 0; i < numRobots; ++i) {
+        Eigen::Vector2d pos_i(states(2 * i), states(2 * i + 1));
+        for (int j = i + 1; j < numRobots; ++j) {
+            Eigen::Vector2d pos_j(states(2 * j), states(2 * j + 1));
+            if ((pos_i - pos_j).norm() < collisionDistance) {
+                return true;  // Collision detected
+            }
+        }
+    }
+
+    return false;  // No collision detected
+}
+
 // Main RRT planning function for multi-agent system
 amp::MultiAgentPath2D MyRRT::planHigherD(const amp::MultiAgentProblem2D& problem) {
     amp::MultiAgentPath2D path;
@@ -152,7 +164,7 @@ amp::MultiAgentPath2D MyRRT::planHigherD(const amp::MultiAgentProblem2D& problem
     tree.push_back(q_init);  // Push initial configuration
 
     int count = 0;
-    int n = 20000;
+    int n = 200000;
     double step = 0.5;
     int goalBiasCount = 0;
     double epsilon = 0.5;
@@ -169,13 +181,16 @@ amp::MultiAgentPath2D MyRRT::planHigherD(const amp::MultiAgentProblem2D& problem
 
         near = getNearestConfig(temp, tree);  // Find nearest node in the tree
         goalBiasCount++;
+        Eigen::VectorXd newEnd = near + (temp - near).normalized() * step;
 
-        if (!subpathCollisionFree(temp, near, problem, step)) {
-            Eigen::VectorXd newEnd = near + (temp - near).normalized() * step;
+        if (!subpathCollisionFree(temp, near, problem, step) && !areRobotsInCollision(newEnd, 0.5)) {
             tree.push_back(newEnd);
-            std::cout << "New End " << newEnd.transpose() << std::endl;
+            // std::cout << "New End " << newEnd.transpose() << std::endl;
+            count++; // move to where we actually add node to graph
+
             
             prevMap[newEnd] = near;  // Track the parent of the new node
+            // keep track of index of nodes from root
 
             if (GOOOOOOOOOL(newEnd, q_goal, problem.numAgents(), epsilon)) {  // Check if goal is reached
                 std::cout << "goal found" << std::endl;
@@ -184,7 +199,6 @@ amp::MultiAgentPath2D MyRRT::planHigherD(const amp::MultiAgentProblem2D& problem
                 break;
             }
         }
-        count++;
     }
 
     if (goalFound) {
@@ -205,10 +219,11 @@ amp::MultiAgentPath2D MyRRT::planHigherD(const amp::MultiAgentProblem2D& problem
         std::cout << "q init " << q_init.transpose() << std::endl;
 
         std::reverse(pathVector.begin(), pathVector.end());  // Reverse the path to go from start to goal
-        amp::Path2D holderPath;
 
         for(int i = 0; i < problem.numAgents(); i++)
         {
+            amp::Path2D holderPath;
+
             Eigen::Vector2d pathTempVec;
             for(auto& vec: pathVector)
             {
@@ -219,6 +234,8 @@ amp::MultiAgentPath2D MyRRT::planHigherD(const amp::MultiAgentProblem2D& problem
             }
             holderPath.waypoints.push_back(problem.agent_properties[i].q_goal);
             holderPath.waypoints.insert(holderPath.waypoints.begin(), problem.agent_properties[i].q_init);
+            std::cout << "Path length " << holderPath.length() << std::endl;
+
             path.agent_paths.push_back(holderPath);
         }
 
@@ -229,3 +246,84 @@ amp::MultiAgentPath2D MyRRT::planHigherD(const amp::MultiAgentProblem2D& problem
 
     return path;
 }
+
+// // Implement your PRM algorithm here
+// amp::Path2D MyRRT::plan(const amp::Problem2D& problem) {
+//     amp::Path2D path;
+//     std::cout << "Running RRT " << std::endl;
+//     // path.waypoints.push_back(problem.q_init);
+//     nodes[0] = problem.q_init;
+    
+//     Eigen::Vector2d temp;
+//     Eigen::Vector2d near;
+//     std::vector<Eigen::Vector2d> tree;
+//     std::map<Eigen::Vector2d, Eigen::Vector2d, decltype(vector2dCompare)> prevMap(vector2dCompare); // current, node before
+//     tree.push_back(problem.q_init);
+    
+//     int count = 0;
+//     int n = 5000;
+//     double step = 0.25;
+//     int goalBiasCount = 0;
+//     bool goalFound = false;
+//     Eigen::Vector2d goalNode;
+
+//     while(count < n) {
+        
+//         if(goalBiasCount == 20) {
+//             temp = problem.q_goal;
+//             goalBiasCount = 0;
+//         } else {
+//             temp = getRandomConfig(problem);
+
+//         }
+//         near = getNearestConfig(temp, tree);
+
+
+//         goalBiasCount++;
+        
+//         if(!subpathCollsionFree(temp, near, problem, step)) {
+//             Eigen::Vector2d newEnd = near + (temp - near).normalized() * step;
+//             tree.push_back(newEnd);
+            
+//             // Track the parent of the new node
+//             prevMap[newEnd] = near;
+
+//             // std::cout << "map " << newEnd.transpose() << " maps to " << near.transpose() << std::endl;
+            
+//             // Check if we've reached the goal
+//             if((newEnd - problem.q_goal).norm() < 0.5) {
+//                 std::cout << "goal found " << std::endl;
+//                 goalFound = true;
+//                 goalNode = newEnd;
+//                 break;
+//             }
+//         }
+//         count++;
+//     }
+
+//     if (goalFound) {
+//         // Backtrack from the goal to the start using the map
+//         Eigen::Vector2d currentNode = goalNode;
+//         // path.waypoints.push_back(problem.q_goal);
+//         int newCount = 0;
+//         path.waypoints.push_back(problem.q_goal);
+//         while (currentNode != problem.q_init) {
+//             path.waypoints.push_back(currentNode);
+//             currentNode = prevMap[currentNode];  // Move to the parent node
+//             newCount++;
+//             // std::cout << "current Node " << currentNode << std::endl;
+//             if (newCount > n)
+//             {
+//                 std::cout << "breaking early" << std::endl;
+//                 break;
+//             }
+//         }
+//         path.waypoints.push_back(problem.q_init);  // Finally, add the start
+//         std::reverse(path.waypoints.begin(), path.waypoints.end());  // Reverse to get the path from start to goal
+//         std::cout << "Path length " << path.length();
+//     } else {
+//         std::cout << "RRT did not find a solution" << std::endl;
+//     }
+
+//     return path;
+// }
