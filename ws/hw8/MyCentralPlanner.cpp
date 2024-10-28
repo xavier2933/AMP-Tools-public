@@ -127,15 +127,17 @@ amp::MultiAgentPath2D MyCentralPlanner::plan(const amp::MultiAgentProblem2D& pro
     // }
     MyRRT rrt;
     path = rrt.planHigherD(newProblem);
-    amp::Path2D agent_path;
-    amp::Problem2D prob;
-    prob.obstacles = problem.obstacles;
-    prob.x_max = problem.x_max;
-    prob.x_min = problem.x_min;
-    prob.y_max = problem.y_max;
-    prob.y_min = problem.y_min;
-    prob.q_init = problem.agent_properties[0].q_init;
-    prob.q_goal = problem.agent_properties[0].q_goal;
+    nodeCount = rrt.nodeCount;
+    std::cout << "nodeCount outer " << nodeCount << std::endl;
+    // amp::Path2D agent_path;
+    // amp::Problem2D prob;
+    // prob.obstacles = problem.obstacles;
+    // prob.x_max = problem.x_max;
+    // prob.x_min = problem.x_min;
+    // prob.y_max = problem.y_max;
+    // prob.y_min = problem.y_min;
+    // prob.q_init = problem.agent_properties[0].q_init;
+    // prob.q_goal = problem.agent_properties[0].q_goal;
 
     // agent_path = rrt.plan(prob);
 
@@ -175,7 +177,11 @@ amp::MultiAgentPath2D MyDecentralPlanner::plan(const amp::MultiAgentProblem2D& p
         prob.q_goal = problem.agent_properties[i].q_goal;
         agent_path = rrt.plan(prob);
         path.agent_paths.push_back(agent_path);
+        std::cout << "node coumt " << rrt.nodeCount << std::endl;
     }
+    nodeCount = rrt.nodeCount;
+    // std::cout << "node count 2: " << nodeCount << std::endl;
+
     // amp::Path2D agent_path;
     // amp::Problem2D prob;
 
@@ -196,7 +202,7 @@ amp::MultiAgentPath2D MyDecentralPlanner::plan(const amp::MultiAgentProblem2D& p
     // prob.q_goal = problem.agent_properties[2].q_goal;
     // agent_path = rrt.plan(prob);
     // path.agent_paths.push_back(agent_path);
-    std::cout << "num agents " << problem.agent_properties.size() << std::endl;
+    // std::cout << "num agents " << problem.agent_properties.size() << std::endl;
 
 
     return path;

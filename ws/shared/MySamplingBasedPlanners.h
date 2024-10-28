@@ -34,5 +34,6 @@ public:
 
     std::shared_ptr<amp::Graph<double>> graphPtr = std::make_shared<amp::Graph<double>>();
     std::map<amp::Node, Eigen::VectorXd> nodes;
+    int nodeCount = 0;
 };
 

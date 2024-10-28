@@ -159,10 +159,10 @@ amp::MultiAgentPath2D MyRRT::planHigherD(const amp::MultiAgentProblem2D& problem
     tree.push_back(q_init);  // Push initial configuration
 
     int count = 0;
-    int n = 200000;
+    int n = 80000;
     double step = 0.5;
     int goalBiasCount = 0;
-    double epsilon = 0.5;
+    double epsilon = 0.25;
     bool goalFound = false;
     Eigen::VectorXd goalNode(2 * problem.numAgents());
 
@@ -195,7 +195,7 @@ amp::MultiAgentPath2D MyRRT::planHigherD(const amp::MultiAgentProblem2D& problem
             }
         }
     }
-
+    nodeCount = count;
     if (goalFound) {
         // Backtrack from goal to start using the map
         Eigen::VectorXd currentNode = goalNode;
@@ -229,14 +229,26 @@ amp::MultiAgentPath2D MyRRT::planHigherD(const amp::MultiAgentProblem2D& problem
             }
             holderPath.waypoints.push_back(problem.agent_properties[i].q_goal);
             holderPath.waypoints.insert(holderPath.waypoints.begin(), problem.agent_properties[i].q_init);
-            std::cout << "Path length " << holderPath.length() << std::endl;
+            // std::cout << "Path length " << holderPath.length() << std::endl;
+            // std::cout << "Tree size " << count << std::endl;
 
             path.agent_paths.push_back(holderPath);
         }
 
         // std::cout << "Path length " << path.length();
     } else {
-        std::cout << "RRT did not find a solution" << std::endl;
+        std::cout << "RRT did not find a solution central" << std::endl;
+        amp::Path2D holderPath;
+        for(int i = 0; i < problem.numAgents(); i++)
+        {
+            amp::Path2D holderPath;
+            holderPath.waypoints.push_back(problem.agent_properties[i].q_init);
+
+            holderPath.waypoints.push_back(problem.agent_properties[i].q_goal);
+
+            path.agent_paths.push_back(holderPath);
+        }
+
     }
 
     return path;
@@ -354,8 +366,8 @@ amp::Path2D MyRRT::plan(const amp::Problem2D& problem) {
     tree.push_back(problem.q_init);
 
     int count = 0;
-    int n = 5000;
-    double step = 0.25;
+    int n = 50000;
+    double step = 0.5;
     int goalBiasCount = 0;
     bool goalFound = false;
     Eigen::Vector2d goalNode;
@@ -389,7 +401,7 @@ amp::Path2D MyRRT::plan(const amp::Problem2D& problem) {
         }
         count++;
     }
-
+    nodeCount += count;
     if (goalFound) {
         Eigen::Vector2d currentNode = goalNode;
         path.waypoints.push_back(problem.q_goal);
@@ -410,7 +422,10 @@ amp::Path2D MyRRT::plan(const amp::Problem2D& problem) {
         pointToTime.push_back(pointToTimeMap);
         std::cout << "Path length " << path.length();
     } else {
-        std::cout << "RRT did not find a solution" << std::endl;
+        std::cout << "RRT did not find a solution decentralized" << std::endl;
+        path.waypoints.push_back(problem.q_init);
+        path.waypoints.push_back(problem.q_goal);
+
     }
 
     return path;
