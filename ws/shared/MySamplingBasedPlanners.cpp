@@ -118,7 +118,7 @@ bool GOOOOOOOOOL(Eigen::VectorXd curr, Eigen::VectorXd GOL, int numAgents, doubl
 
 bool areRobotsInCollision(const Eigen::VectorXd& states, double radius) {
     int numRobots = states.size() / 2;
-    double collisionDistance = 2 * radius;
+    double collisionDistance = (2 * radius) + 0.15;
 
     for (int i = 0; i < numRobots; ++i) {
         Eigen::Vector2d pos_i(states(2 * i), states(2 * i + 1));
@@ -159,7 +159,7 @@ amp::MultiAgentPath2D MyRRT::planHigherD(const amp::MultiAgentProblem2D& problem
     tree.push_back(q_init);  // Push initial configuration
 
     int count = 0;
-    int n = 80000;
+    int n = 70000;
     double step = 0.5;
     int goalBiasCount = 0;
     double epsilon = 0.25;
@@ -336,10 +336,26 @@ bool MyRRT::checkPaths(Eigen::Vector2d point, int time, double radius)
 {
     for(auto& map:timeToPoint)
     {
+        if (map.find(time) != map.end()) {
         Eigen::Vector2d pointFromMap = map[time];
-        if((point-pointFromMap).norm() < 2*radius)
+        if((point-pointFromMap).norm() < (2*radius + 0.10))
         {
             return false;
+        }
+        }
+        if (map.find(time-1) != map.end()) {
+        Eigen::Vector2d pointFromMap = map[time-1];
+        if((point-pointFromMap).norm() < (2*radius + 0.10))
+        {
+            return false;
+        }
+        }
+        if (map.find(time+1) != map.end()) {
+        Eigen::Vector2d pointFromMap = map[time+1];
+        if((point-pointFromMap).norm() < (2*radius + 0.10))
+        {
+            return false;
+        }
         }
     }
     return true; // if path is valid
@@ -366,7 +382,7 @@ amp::Path2D MyRRT::plan(const amp::Problem2D& problem) {
     tree.push_back(problem.q_init);
 
     int count = 0;
-    int n = 50000;
+    int n = 100000;
     double step = 0.5;
     int goalBiasCount = 0;
     bool goalFound = false;
@@ -384,6 +400,7 @@ amp::Path2D MyRRT::plan(const amp::Problem2D& problem) {
         int val = pointToTimeMap[near];
         Eigen::Vector2d newEnd = near + (temp - near).normalized() * step;
         val = val + 1;
+        if(pointToTimeMap.find(newEnd) != pointToTimeMap.end()) break;
         if (!subpathCollsionFree2d(temp, near, problem, step) && checkPaths(newEnd, val, 0.5)) {
             // Eigen::Vector2d newEnd = near + (temp - near).normalized() * step;
             tree.push_back(newEnd);
@@ -392,7 +409,7 @@ amp::Path2D MyRRT::plan(const amp::Problem2D& problem) {
             pointToTimeMap.insert({newEnd, val});
             timeToPointMap.insert({val, newEnd});
 
-            if ((newEnd - problem.q_goal).norm() < 0.5) {
+            if ((newEnd - problem.q_goal).norm() < 0.25) {
                 std::cout << "goal found " << std::endl;
                 goalFound = true;
                 goalNode = newEnd;

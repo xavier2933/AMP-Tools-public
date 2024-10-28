@@ -24,14 +24,14 @@ int main(int argc, char** argv) {
 
     // Initialize Workspace 1 with 3 agents
     amp::RNG::seed(amp::RNG::randiUnbounded());
-    MultiAgentProblem2D problem = HW8::getWorkspace1(2);
+    MultiAgentProblem2D problem = HW8::getWorkspace1(5);
     std::vector<std::vector<Eigen::Vector2d>> collision_states;
 
     // Solve using a centralized approach
     MyCentralPlanner central_planner;
-    MultiAgentPath2D path = central_planner.plan(problem);
-    bool isValid = HW8::check(path, problem, collision_states);
-    Visualizer::makeFigure(problem, path, collision_states);
+    // MultiAgentPath2D path = central_planner.plan(problem);
+    // bool isValid = HW8::check(path, problem, collision_states);
+    // Visualizer::makeFigure(problem, path, collision_states);
 
 
     std::list<std::vector<double>> timeVec;
@@ -83,6 +83,7 @@ int main(int argc, char** argv) {
     // Visualizer::makeBoxPlot(treeSizeVec, labels, "TREE SIZE", "m", "NODES");
 
     // Solve using a decentralized approach
+    MultiAgentPath2D path;
     MyDecentralPlanner decentral_planner;
     collision_states = {{}};
     // HW8::generateAndCheck(decentral_planner, path, problem, collision_states);

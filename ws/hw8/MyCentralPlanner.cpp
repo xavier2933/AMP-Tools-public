@@ -108,7 +108,7 @@ Then for every pair of robots check if they're in collsion
 amp::MultiAgentPath2D MyCentralPlanner::plan(const amp::MultiAgentProblem2D& problem) {
     amp::MultiAgentPath2D path;
     amp::MultiAgentProblem2D newProblem = problem;
-    newProblem.obstacles = expandObstacles(newProblem, 0.5);
+    newProblem.obstacles = expandObstacles(newProblem, 0.6);
     // for (const amp::CircularAgentProperties& agent : problem.agent_properties) {
     //     MyRRT rrt;
     //     amp::Path2D agent_path;
@@ -157,11 +157,47 @@ Check obstacles, if in collision at that time step with any other path?
 amp::MultiAgentPath2D MyDecentralPlanner::plan(const amp::MultiAgentProblem2D& problem) {
     amp::MultiAgentPath2D path;
     amp::MultiAgentProblem2D newProblem = problem;
-    newProblem.obstacles = expandObstacles(newProblem, 0.5);
+    newProblem.obstacles = expandObstacles(newProblem, 0.53);
     // for (const amp::CircularAgentProperties& agent : problem.agent_properties) {
     //     amp::Path2D agent_path;
     //     agent_path.waypoints = {agent.q_init, agent.q_goal};
     //     path.agent_paths.push_back(agent_path);
+    // }
+
+    // for(int i = 0; i < problem.agent_properties.size(); i++)
+    // {
+    //     std::vector<Eigen::Vector2d> expanded_vertices;
+
+    //     Eigen::Vector2d goal = problem.agent_properties[i].q_goal;
+
+    //     double halfLength = 0.51 / 2.0;
+
+    //     // Calculate the vertices based on the center point
+    //     expanded_vertices.push_back(goal + Eigen::Vector2d(-halfLength, -halfLength)); // Bottom-left
+    //     expanded_vertices.push_back(goal + Eigen::Vector2d( halfLength, -halfLength)); // Bottom-right
+    //     expanded_vertices.push_back(goal + Eigen::Vector2d( halfLength,  halfLength)); // Top-right
+    //     expanded_vertices.push_back(goal + Eigen::Vector2d(-halfLength,  halfLength)); // Top-left
+    //     amp::Polygon expanded_obstacle;
+    //     expanded_obstacle.verticesCCW() = sortPts(expanded_vertices);  // Ensure vertices remain counterclockwise
+    //     newProblem.obstacles.push_back(expanded_obstacle);
+    // }
+
+    // for(int i = 0; i < problem.agent_properties.size(); i++)
+    // {
+    //     std::vector<Eigen::Vector2d> expanded_vertices;
+
+    //     Eigen::Vector2d goal = problem.agent_properties[i].q_init;
+
+    //     double halfLength = 0.6 / 2.0;
+
+    //     // Calculate the vertices based on the center point
+    //     expanded_vertices.push_back(goal + Eigen::Vector2d(-halfLength, -halfLength)); // Bottom-left
+    //     expanded_vertices.push_back(goal + Eigen::Vector2d( halfLength, -halfLength)); // Bottom-right
+    //     expanded_vertices.push_back(goal + Eigen::Vector2d( halfLength,  halfLength)); // Top-right
+    //     expanded_vertices.push_back(goal + Eigen::Vector2d(-halfLength,  halfLength)); // Top-left
+    //     amp::Polygon expanded_obstacle;
+    //     expanded_obstacle.verticesCCW() = sortPts(expanded_vertices);  // Ensure vertices remain counterclockwise
+    //     newProblem.obstacles.push_back(expanded_obstacle);
     // }
     MyRRT rrt;
     for(int i = 0; i < problem.agent_properties.size(); i++)
