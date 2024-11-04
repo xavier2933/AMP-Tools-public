@@ -118,7 +118,7 @@ bool GOOOOOOOOOL(Eigen::VectorXd curr, Eigen::VectorXd GOL, int numAgents, doubl
 
 bool areRobotsInCollision(const Eigen::VectorXd& states, double radius) {
     int numRobots = states.size() / 2;
-    double collisionDistance = 2 * radius;
+    double collisionDistance = 2.5 * radius;
 
     for (int i = 0; i < numRobots; ++i) {
         Eigen::Vector2d pos_i(states(2 * i), states(2 * i + 1));
@@ -159,7 +159,7 @@ amp::MultiAgentPath2D MyRRT::planHigherD(const amp::MultiAgentProblem2D& problem
     tree.push_back(q_init);  // Push initial configuration
 
     int count = 0;
-    int n = 80000;
+    int n = 30000;
     double step = 0.5;
     int goalBiasCount = 0;
     double epsilon = 0.25;
@@ -366,7 +366,7 @@ amp::Path2D MyRRT::plan(const amp::Problem2D& problem) {
     tree.push_back(problem.q_init);
 
     int count = 0;
-    int n = 50000;
+    int n = 15000;
     double step = 0.5;
     int goalBiasCount = 0;
     bool goalFound = false;
