@@ -69,7 +69,7 @@ void MySecondOrderUnicycle::propagate(Eigen::VectorXd& state, Eigen::VectorXd& c
         dxdt2(3) = control(1);
         dxdt2(4) = control(2);
 
-        return dxdt;
+        return dxdt2;
     };
 
     // Calculate w1, w2, w3, and w4
@@ -85,7 +85,36 @@ void MySecondOrderUnicycle::propagate(Eigen::VectorXd& state, Eigen::VectorXd& c
 
 void MySimpleCar::propagate(Eigen::VectorXd& state, Eigen::VectorXd& control, double dt)
 {
+    auto dynamics3 = [this](const Eigen::VectorXd& state, const Eigen::VectorXd& control) -> Eigen::VectorXd {
+        Eigen::VectorXd dxdt3(5);
+        double l = 5.0;
+        double w = 2.0;
+        double sigma = state(3);
+        double r = 0.25;
+        Eigen::VectorXd dxdt(3);
+        double theta = state(2);
+        double v = control(0);   // Linear velocity
+        double omega = control(1); // Angular velocity
 
+        // Define the unicycle model's dynamics
+        dxdt3(0) = state(3) * cos(theta);
+        dxdt3(1) = state(3) * sin(theta); // dy/dt = v * sin(theta)
+        dxdt3(2) = (state(3)/l) * tan(state(4));          // dtheta/dt = omega
+        dxdt3(3) = control(1);
+        dxdt3(4) = control(2);
+
+        return dxdt3;
+    };
+
+    // Calculate w1, w2, w3, and w4
+    Eigen::VectorXd w1 = dynamics3(state, control);
+    Eigen::VectorXd w2 = dynamics3(state + 0.5 * dt * w1, control);
+    Eigen::VectorXd w3 = dynamics3(state + 0.5 * dt * w2, control);
+    Eigen::VectorXd w4 = dynamics3(state + dt * w3, control);
+
+    // Update the state using RK4 formula
+    // std::cout << "State before " << state.transpose() << std::endl;
+    state = state + (dt / 6.0) * (w1 + 2.0 * w2 + 2.0 * w3 + w4);
 }
 
 bool isInCollision(const amp::KinodynamicProblem2D& environment, const Eigen::Vector2d& point) {
@@ -135,16 +164,17 @@ bool hasCollision(Eigen::Vector2d j1, Eigen::Vector2d j2, const amp::Kinodynamic
 
 amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::DynamicAgent& agent) {
     amp::KinoPath path;
-    Eigen::VectorXd state = problem.q_init;
+    Eigen::VectorXd state = problem.q_init; // inital state Xd
     std::vector<Eigen::VectorXd> controls;
     std::vector<double> timeSteps;
+    std::cout << "Agent dimensions " << agent.agent_dim.length << "width " << agent.agent_dim.width << std::endl;
 
-    // use points in workspace b/c rotation doesn't really matter
-    Eigen::Vector2d init(problem.q_init[0], problem.q_init[1]);
-    double x = problem.q_goal[0].first + (problem.q_goal[0].second - problem.q_goal[0].first)/2;
-    double y = problem.q_goal[1].first + (problem.q_goal[1].second - problem.q_goal[1].first)/2;
-    Eigen::Vector2d goal(x, y);
-    // std::cout << x << " y " << y << std::endl;
+    Eigen::VectorXd goal = Eigen::VectorXd::Zero(problem.q_init.size()); // Initialize a 2-dimensional VectorXd
+
+    for(int i = 0; i < problem.q_goal.size(); i++)
+    {
+        goal(i) = problem.q_goal[i].first + (problem.q_goal[i].second - problem.q_goal[i].first)/2.0;
+    }
 
     int a = 0;
     for(auto& point : problem.q_goal)
@@ -152,55 +182,64 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
         a++;
         std::cout << "dimension " << a << " is " << point.first << ", " << point.second << std::endl;
     }
-    Eigen::Vector2d temp;
+    Eigen::VectorXd temp;
     Eigen::VectorXd tempTemp = Eigen::VectorXd::Zero(problem.q_init.size()); // Initialize a 2-dimensional VectorXd
 
     Eigen::Vector2d near;
+    Eigen::VectorXd nearXd = Eigen::VectorXd::Zero(problem.q_init.size());
+    Eigen::VectorXd newEndXd = Eigen::VectorXd::Zero(problem.q_init.size());
+
     std::vector<Eigen::VectorXd> tree;
-    std::map<Eigen::Vector2d, Eigen::Vector2d, decltype(vector2dCompare)> prevMap(vector2dCompare); // current, node before
+    std::map<Eigen::VectorXd, Eigen::VectorXd, decltype(vectorXdCompare)> prevMap(vectorXdCompare); // current, node before
     std::map<Eigen::VectorXd, Eigen::VectorXd, decltype(vectorXdCompare)> controlMap(vectorXdCompare); // current, node before
 
-    tree.push_back(init);
+    tree.push_back(state);
     // path.waypoints.push_back(state);
     int count = 0;
-    int n = 5000;
+    int n = 100000;
     double step = 0.25;
     int goalBiasCount = 0;
     bool goalFound = false;
-    Eigen::Vector2d goalNode;
-
+    Eigen::VectorXd goalNode;
+    
     while(count < n) {
         
-        if(goalBiasCount == 20) {
+        if(goalBiasCount == 20) { // do sampling in workspace 2-d
             temp = goal;
             goalBiasCount = 0;
         } else {
-            temp = getRandomConfig(problem);
-
+            temp = getRandomConfig(problem); //statesample
         }
-        near = getNearestConfig(temp, tree);
-        tempTemp[0] = temp[0];
-        tempTemp[1] = temp[1];
+        nearXd = getNearestConfig(temp, tree); // get nearest state
+        // std::cout << "temp " << temp.transpose() << "nearest " << nearXd.transpose(); 
 
         Eigen::VectorXd control = Eigen::VectorXd::Random(problem.q_init.size());
-        agent.propagate(tempTemp, control, 0.4);
-        temp[0] = tempTemp[0];
-        temp[1] = tempTemp[1];
+        Eigen::VectorXd newEnd = nearXd;
+        // std::cout << "nearXd " << nearXd.transpose();
+
+        agent.propagate(newEnd, control, 0.4); // generateLocalTrajectory
+
+        // std::cout << " Controlled to " << newEnd.transpose() << std::endl;
 
         goalBiasCount++;
-        
-        if(!subpathCollsionFree(temp, near, problem, step)) {
-            Eigen::Vector2d newEnd = near + (temp - near).normalized() * step;
-            tree.push_back(newEnd);
-            
-            // Track the parent of the new node
-            prevMap[newEnd] = near;
-            controlMap[newEnd] = control;
+        Eigen::Vector2d temp2d(newEnd[0],newEnd[1]);
+        Eigen::Vector2d near2d(nearXd[0], nearXd[1]);
+        // Eigen::Vector2d temp2d(0.5,1.5);
+        // Eigen::Vector2d near2d(2.5, 1.5);
+        // std::cout << "subpathCollisionFree " << subpathCollsionFree(near2d, temp2d, problem, step) << std::endl;
 
-            // std::cout << "map " << newEnd.transpose() << " maps to " << near.transpose() << std::endl;
+        if(subpathCollsionFree(temp2d, near2d, problem, step)) { //check if subtrajectory is valid
+            tree.push_back(newEnd);
+
+            prevMap[newEnd] = nearXd;
+            controlMap[newEnd] = control;
+            Eigen::Vector2d goal2d(goal[0],goal[1]);
+            Eigen::Vector2d newEnd2d(newEnd[0], newEnd[1]);
             
             // Check if we've reached the goal
+            // if((newEnd2d - goal2d).norm() < 0.5) {
             if((newEnd - goal).norm() < 0.5) {
+
                 std::cout << "goal found " << std::endl;
                 goalFound = true;
                 goalNode = newEnd;
@@ -212,22 +251,21 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
 
     if (goalFound) {
         // Backtrack from the goal to the start using the map
-        Eigen::Vector2d currentNode = goalNode;
+        Eigen::VectorXd currentNode = goalNode;
         // path.waypoints.push_back(problem.q_goal);
         int newCount = 0;
         path.waypoints.push_back(goal);
         timeSteps.push_back(0.0);
         controls.push_back(Eigen::VectorXd::Zero(problem.q_init.size()));
-
-        while (currentNode != init) {
+        while (currentNode != problem.q_init) {
 
             path.waypoints.push_back(currentNode);
+            // std::cout << "pushing out " << currentNode.transpose() << std::endl;
             controls.push_back(controlMap[currentNode]);
             timeSteps.push_back(0.4);
             currentNode = prevMap[currentNode];  // Move to the parent node
             newCount++;
-
-            if(currentNode == init)
+            if(currentNode == problem.q_init)
             {
                 timeSteps.push_back(0.0);
                 controls.push_back(Eigen::VectorXd::Zero(problem.q_init.size())); 
@@ -241,7 +279,7 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
             }
         }
 
-        path.waypoints.push_back(init);  // Finally, add the start
+        path.waypoints.push_back(problem.q_init);  // Finally, add the start
         path.controls = controls;
 
         path.durations = timeSteps;
@@ -261,17 +299,9 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
         std::cout << "RRT did not find a solution" << std::endl;
     }
 
-
-    // std::cout << "size " << problem.q_init.size() << std::endl;
-    // for (int i = 0; i < 10; i++) {
-    //     Eigen::VectorXd control = Eigen::VectorXd::Random(problem.q_init.size());
-    //     agent.propagate(state, control, 1.0);
-    //     std::cout << "State is " << state.transpose() << std::endl;
-    //     path.waypoints.push_back(state);
-    //     path.controls.push_back(control);
-    //     path.durations.push_back(1.0);
-    // }
     path.valid = true;
+            // std::cout <<"seg fault" << std::endl;
+
     return path;
 }
 
@@ -291,15 +321,24 @@ Eigen::VectorXd MyKinoRRT::getNearestConfig(const Eigen::VectorXd& temp, const s
 }
 
 
-Eigen::Vector2d MyKinoRRT::getRandomConfig(const amp::KinodynamicProblem2D& problem) {
-    double x = problem.x_min + (problem.x_max - problem.x_min) * ((double) rand() / RAND_MAX);
-    double y = problem.y_min + (problem.y_max - problem.y_min) * ((double) rand() / RAND_MAX);
+Eigen::VectorXd MyKinoRRT::getRandomConfig(const amp::KinodynamicProblem2D& problem) {
+    Eigen::VectorXd q_random(problem.q_bounds.size());
+    for(int i = 0; i < problem.q_bounds.size(); i++)
+    {
+        q_random(i) = problem.q_bounds[i].first + (problem.q_bounds[i].second - problem.q_bounds[i].first) * ((double) rand() / RAND_MAX);
+    }
     // double y = -3 + (6) * ((double) rand() / RAND_MAX);
-    return {x, y};
+    return q_random;
 }
 
-bool MyKinoRRT::subpathCollsionFree(Eigen::VectorXd rand, Eigen::VectorXd near, const amp::KinodynamicProblem2D& problem, double step)
+bool MyKinoRRT::subpathCollsionFree(Eigen::VectorXd newEnd, Eigen::VectorXd near, const amp::KinodynamicProblem2D& problem, double step)
 {
-    Eigen::VectorXd newEnd = near + (rand - near).normalized() * step;
-    return hasCollision(rand, newEnd, problem);
+    // Eigen::VectorXd newEnd = near + (rand - near).normalized() * step;
+    if(newEnd[0] < problem.x_min || newEnd[0] > problem.x_max) return false;
+    if(near[0] < problem.x_min || near[0] > problem.x_max) return false;
+
+    if(newEnd[1] < problem.y_min || newEnd[1] > problem.y_max) return false;
+    if(near[1] < problem.y_min || near[1] > problem.y_max) return false;
+
+    return !hasCollision(near, newEnd, problem);
 }   

@@ -9,7 +9,7 @@
 class MyKinoRRT : public amp::KinodynamicRRT {
     public:
         virtual amp::KinoPath plan(const amp::KinodynamicProblem2D& problem, amp::DynamicAgent& agent) override;
-        Eigen::Vector2d getRandomConfig(const amp::KinodynamicProblem2D& problem);
+        Eigen::VectorXd getRandomConfig(const amp::KinodynamicProblem2D& problem);
         Eigen::VectorXd getNearestConfig(const Eigen::VectorXd& temp, const std::vector<Eigen::VectorXd>& tree);
         bool subpathCollsionFree(Eigen::VectorXd rand, Eigen::VectorXd near, const amp::KinodynamicProblem2D& problem, double step);
 

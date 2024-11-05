@@ -6,7 +6,7 @@
 
 using namespace amp;
 
-// Load problems and map agent for quick testing
+// Load problems and map agent for quick testing               0                    1                           2                           3                               4                           5                       6                       7               
 std::vector<KinodynamicProblem2D> problems = {HW9::getStateIntProblemWS1(), HW9::getStateIntProblemWS2(), HW9::getFOUniProblemWS1(), HW9::getFOUniProblemWS2(), HW9::getSOUniProblemWS1(), HW9::getSOUniProblemWS2(), HW9::getCarProblemWS1(), HW9::getParkingProblem()};
 std::unordered_map<AgentType, std::function<std::shared_ptr<amp::DynamicAgent>()>> agentFactory = {
     {AgentType::SingleIntegrator, []() { return std::make_shared<MySingleIntegrator>(); }},
@@ -17,12 +17,14 @@ std::unordered_map<AgentType, std::function<std::shared_ptr<amp::DynamicAgent>()
 
 int main(int argc, char** argv) {
     // Select problem, plan, check, and visualize
-    int select = 2;
+    int select = 4;
     KinodynamicProblem2D prob = problems[select];
     MyKinoRRT kino_planner;
     KinoPath path = kino_planner.plan(prob, *agentFactory[prob.agent_type]());
-
+    std::cout << "seg fault 1" << std::endl;
     HW9::check(path, prob);
+        std::cout << "seg fault 2" << std::endl;
+
 
     if (path.valid)
         Visualizer::makeFigure(prob, path, false); // Set to 'true' to render animation
