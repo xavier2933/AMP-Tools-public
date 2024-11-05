@@ -30,8 +30,8 @@ void MyFirstOrderUnicycle::propagate(Eigen::VectorXd& state, Eigen::VectorXd& co
         double omega = control(1); // Angular velocity
 
         // Define the unicycle model's dynamics
-        dxdt(0) = v * cos(theta); // dx/dt = v * cos(theta)
-        dxdt(1) = v * sin(theta); // dy/dt = v * sin(theta)
+        dxdt(0) = v * cos(theta); // dx/dt = u_sigma * cos(theta)
+        dxdt(1) = v * sin(theta); // dy/dt = u_sigma * sin(theta)
         dxdt(2) = omega;          // dtheta/dt = omega
 
         return dxdt;
@@ -44,10 +44,49 @@ void MyFirstOrderUnicycle::propagate(Eigen::VectorXd& state, Eigen::VectorXd& co
     Eigen::VectorXd w4 = dynamics(state + dt * w3, control);
 
     // Update the state using RK4 formula
-    std::cout << "State before " << state.transpose() << std::endl;
+    // std::cout << "State before " << state.transpose() << std::endl;
     state = state + (dt / 6.0) * (w1 + 2.0 * w2 + 2.0 * w3 + w4);
-    std::cout << "State after " << state.transpose() << std::endl << std::endl;
+    // std::cout << "State after " << state.transpose() << std::endl << std::endl;
 };
+
+void MySecondOrderUnicycle::propagate(Eigen::VectorXd& state, Eigen::VectorXd& control, double dt)
+{
+
+    auto dynamics2 = [this](const Eigen::VectorXd& state, const Eigen::VectorXd& control) -> Eigen::VectorXd {
+        Eigen::VectorXd dxdt2(5);
+
+        double sigma = state(3);
+        double r = 0.25;
+        Eigen::VectorXd dxdt(3);
+        double theta = state(2);
+        double v = control(0);   // Linear velocity
+        double omega = control(1); // Angular velocity
+
+        // Define the unicycle model's dynamics
+        dxdt2(0) = state(3) * r * cos(theta);
+        dxdt2(1) = state(3) * r * sin(theta); // dy/dt = v * sin(theta)
+        dxdt2(2) = state(4);          // dtheta/dt = omega
+        dxdt2(3) = control(1);
+        dxdt2(4) = control(2);
+
+        return dxdt;
+    };
+
+    // Calculate w1, w2, w3, and w4
+    Eigen::VectorXd w1 = dynamics2(state, control);
+    Eigen::VectorXd w2 = dynamics2(state + 0.5 * dt * w1, control);
+    Eigen::VectorXd w3 = dynamics2(state + 0.5 * dt * w2, control);
+    Eigen::VectorXd w4 = dynamics2(state + dt * w3, control);
+
+    // Update the state using RK4 formula
+    // std::cout << "State before " << state.transpose() << std::endl;
+    state = state + (dt / 6.0) * (w1 + 2.0 * w2 + 2.0 * w3 + w4);
+}
+
+void MySimpleCar::propagate(Eigen::VectorXd& state, Eigen::VectorXd& control, double dt)
+{
+
+}
 
 bool isInCollision(const amp::KinodynamicProblem2D& environment, const Eigen::Vector2d& point) {
     for (const auto& polygon : environment.obstacles) {
@@ -107,6 +146,12 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
     Eigen::Vector2d goal(x, y);
     // std::cout << x << " y " << y << std::endl;
 
+    int a = 0;
+    for(auto& point : problem.q_goal)
+    {
+        a++;
+        std::cout << "dimension " << a << " is " << point.first << ", " << point.second << std::endl;
+    }
     Eigen::Vector2d temp;
     Eigen::VectorXd tempTemp = Eigen::VectorXd::Zero(problem.q_init.size()); // Initialize a 2-dimensional VectorXd
 
@@ -117,7 +162,6 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
 
     tree.push_back(init);
     // path.waypoints.push_back(state);
-
     int count = 0;
     int n = 5000;
     double step = 0.25;
@@ -201,7 +245,7 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
         path.controls = controls;
 
         path.durations = timeSteps;
-        std::cout << "waypoints " << path.waypoints.size() << " controls " << path.controls.size() << " durations " << path.durations.size() << std::endl;
+        // std::cout << "waypoints " << path.waypoints.size() << " controls " << path.controls.size() << " durations " << path.durations.size() << std::endl;
 
 
 
@@ -210,7 +254,7 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
 
         for(int i = 0; i < path.waypoints.size(); i++)
         {
-            std::cout << "Point " << path.waypoints[i].transpose() << " with control " << path.controls[i].transpose() << " and duration " << path.durations[i] << std::endl;
+            // std::cout << "Point " << path.waypoints[i].transpose() << " with control " << path.controls[i].transpose() << " and duration " << path.durations[i] << std::endl;
         }
         // std::cout << "Path length " << path.length();
     } else {
