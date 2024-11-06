@@ -264,12 +264,12 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
     tree.push_back(state);
     // path.waypoints.push_back(state);
     int count = 0;
-    int n = 100000;
+    int n = 200000;
     double step = 0.25;
     int goalBiasCount = 0;
     bool goalFound = false;
     Eigen::VectorXd goalNode;
-    double timeStep = 0.2;
+    double timeStep = 0.5;
     
     while(count < n) {
         
@@ -282,7 +282,7 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
         nearXd = getNearestConfig(temp, tree); // get nearest state
         // std::cout << "temp " << temp.transpose() << "nearest " << nearXd.transpose(); 
 
-        Eigen::VectorXd control = Eigen::VectorXd::Random(problem.q_init.size());
+        Eigen::VectorXd control = 0.5* Eigen::VectorXd::Random(problem.u_bounds.size());
         Eigen::VectorXd newEnd = nearXd;
         // std::cout << "nearXd " << nearXd.transpose();
 
@@ -332,8 +332,8 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
         gol[0] = goal[0];
         gol[1] = goal[1];
         // path.waypoints.push_back(goal);
-        timeSteps.push_back(0.0);
-        controls.push_back(Eigen::VectorXd::Zero(problem.q_init.size()));
+        // timeSteps.push_back(0.0);
+        // controls.push_back(Eigen::VectorXd::Zero(problem.q_init.size()));
         while (currentNode != problem.q_init) {
 
             path.waypoints.push_back(currentNode);
@@ -357,6 +357,8 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
         }
 
         path.waypoints.push_back(problem.q_init);  // Finally, add the start
+        timeSteps.push_back(timeStep);
+        controls.push_back(Eigen::VectorXd::Zero(problem.u_bounds.size()));
         path.controls = controls;
 
         path.durations = timeSteps;
@@ -364,8 +366,8 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
 
 
 
-        // std::reverse(path.waypoints.begin(), path.waypoints.end());  // Reverse to get the path from start to goal
-        // std::reverse(path.controls.begin(), path.controls.end());  // Reverse to get the path from start to goal
+        std::reverse(path.waypoints.begin(), path.waypoints.end());  // Reverse to get the path from start to goal
+        std::reverse(path.controls.begin(), path.controls.end());  // Reverse to get the path from start to goal
 
         std::cout << "final state " << path.waypoints.back() << std::endl;
         for(int i = 0; i < path.waypoints.size(); i++)
