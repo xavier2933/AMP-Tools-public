@@ -1,4 +1,5 @@
 #include "MyKinoRRT.h"
+#include <Eigen/Geometry> // Include for Rotation2D
 
 auto vector2dCompare = [](const Eigen::Vector2d& a, const Eigen::Vector2d& b) {
     if (a.x() == b.x()) {
@@ -28,10 +29,10 @@ void MyFirstOrderUnicycle::propagate(Eigen::VectorXd& state, Eigen::VectorXd& co
         double theta = state(2);
         double v = control(0);   // Linear velocity
         double omega = control(1); // Angular velocity
-
+        double r = 0.25;
         // Define the unicycle model's dynamics
-        dxdt(0) = v * cos(theta); // dx/dt = u_sigma * cos(theta)
-        dxdt(1) = v * sin(theta); // dy/dt = u_sigma * sin(theta)
+        dxdt(0) = v * r * cos(theta); // dx/dt = u_sigma * cos(theta)
+        dxdt(1) = v * r * sin(theta); // dy/dt = u_sigma * sin(theta)
         dxdt(2) = omega;          // dtheta/dt = omega
 
         return dxdt;
@@ -142,6 +143,7 @@ bool isInCollision(const amp::KinodynamicProblem2D& environment, const Eigen::Ve
     return false;
 }
 
+
 bool hasCollision(Eigen::Vector2d j1, Eigen::Vector2d j2, const amp::KinodynamicProblem2D& env) 
 {
     Eigen::Vector2d direction = (j2 - j1).normalized();
@@ -162,13 +164,79 @@ bool hasCollision(Eigen::Vector2d j1, Eigen::Vector2d j2, const amp::Kinodynamic
     return false;
 }
 
+double computeAngle(const Eigen::Vector2d& pivot, const Eigen::Vector2d& point) {
+    Eigen::Vector2d vec = point - pivot;
+    return std::atan2(vec.y(), vec.x());
+}
+
+std::vector<Eigen::Vector2d> sortPts(std::vector<Eigen::Vector2d> points) {
+
+    // Step 1: Find the point with the smallest x and y values (the pivot)
+    Eigen::Vector2d pivot = *std::min_element(points.begin(), points.end(),
+                                              [](const Eigen::Vector2d& p1, const Eigen::Vector2d& p2) {
+                                                  if (p1.x() == p2.x()) return p1.y() < p2.y();
+                                                  return p1.x() < p2.x();
+                                              });
+
+    // Step 2: Sort the remaining points counterclockwise based on their angle with the pivot
+    std::sort(points.begin(), points.end(),
+              [pivot](const Eigen::Vector2d& p1, const Eigen::Vector2d& p2) {
+                  // Compute angles for each point relative to the pivot
+                  double angle1 = computeAngle(pivot, p1);
+                  double angle2 = computeAngle(pivot, p2);
+                  return angle1 < angle2;
+              });
+
+    // Output the sorted points
+    // std::cout << "Sorted points counterclockwise:\n";
+    for (const auto& point : points) {
+        // std::cout << "(" << point.x() << ", " << point.y() << ")\n";
+    }
+
+    return points;
+}
+
+std::vector<Eigen::Vector2d> getVertices(Eigen::VectorXd state, double length, double width, bool car)
+{
+    double x = state[0];
+    double y = state[1];
+    double theta = M_PI/2.0;
+
+        double half_length = length / 2.0;
+    double half_width = width / 2.0;
+
+    std::vector<Eigen::Vector2d> vertices(4);
+
+    Eigen::Rotation2D<double> rotation(theta);
+
+    vertices[0] = rotation * Eigen::Vector2d(-half_length, -half_width) + Eigen::Vector2d(x, y); // Bottom-left
+    vertices[1] = rotation * Eigen::Vector2d(half_length, -half_width) + Eigen::Vector2d(x, y);  // Bottom-right
+    vertices[2] = rotation * Eigen::Vector2d(half_length, half_width) + Eigen::Vector2d(x, y);   // Top-right
+    vertices[3] = rotation * Eigen::Vector2d(-half_length, half_width) + Eigen::Vector2d(x, y);  // Top-left
+    std::cout << "Vertices " << vertices[0].transpose() << ", " << vertices[1].transpose()  << ", " << vertices[2].transpose()  << ", "<< vertices[3].transpose()  << std::endl;
+    vertices = sortPts(vertices);
+        std::cout << "Vertices " << vertices[0].transpose() << ", " << vertices[1].transpose()  << ", " << vertices[2].transpose()  << ", "<< vertices[3].transpose()  << std::endl;
+
+    return vertices;
+}
+
+bool checkBounds(Eigen::VectorXd state, std::vector<std::pair<double, double>> goal)
+{
+    for(int i = 0; i < state.size(); i++)
+    {
+        if(state[i] < goal[i].first || state[i] > goal[i].second) return false;
+    }
+    return true;
+} 
+ 
+
 amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::DynamicAgent& agent) {
     amp::KinoPath path;
     Eigen::VectorXd state = problem.q_init; // inital state Xd
     std::vector<Eigen::VectorXd> controls;
     std::vector<double> timeSteps;
-    std::cout << "Agent dimensions " << agent.agent_dim.length << "width " << agent.agent_dim.width << std::endl;
-
+    std::cout << "Agent dimensions " << problem.agent_dim.length << "width " << problem.agent_dim.width << std::endl;
+    std::vector<Eigen::Vector2d> vert = getVertices(state, 0.5, 0.1, false);
     Eigen::VectorXd goal = Eigen::VectorXd::Zero(problem.q_init.size()); // Initialize a 2-dimensional VectorXd
 
     for(int i = 0; i < problem.q_goal.size(); i++)
@@ -201,6 +269,7 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
     int goalBiasCount = 0;
     bool goalFound = false;
     Eigen::VectorXd goalNode;
+    double timeStep = 0.2;
     
     while(count < n) {
         
@@ -217,13 +286,18 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
         Eigen::VectorXd newEnd = nearXd;
         // std::cout << "nearXd " << nearXd.transpose();
 
-        agent.propagate(newEnd, control, 0.4); // generateLocalTrajectory
+        agent.propagate(newEnd, control, timeStep); // generateLocalTrajectory
 
         // std::cout << " Controlled to " << newEnd.transpose() << std::endl;
 
         goalBiasCount++;
         Eigen::Vector2d temp2d(newEnd[0],newEnd[1]);
         Eigen::Vector2d near2d(nearXd[0], nearXd[1]);
+
+        if(!checkBounds(newEnd, problem.q_bounds)) // outsid eof bounds this logic is weird
+        {
+            continue;
+        }
         // Eigen::Vector2d temp2d(0.5,1.5);
         // Eigen::Vector2d near2d(2.5, 1.5);
         // std::cout << "subpathCollisionFree " << subpathCollsionFree(near2d, temp2d, problem, step) << std::endl;
@@ -237,8 +311,8 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
             Eigen::Vector2d newEnd2d(newEnd[0], newEnd[1]);
             
             // Check if we've reached the goal
-            // if((newEnd2d - goal2d).norm() < 0.5) {
-            if((newEnd - goal).norm() < 0.5) {
+            if(checkBounds(newEnd, problem.q_goal)) {
+            // if((newEnd - goal).norm() < 0.25) {
 
                 std::cout << "goal found " << std::endl;
                 goalFound = true;
@@ -254,7 +328,10 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
         Eigen::VectorXd currentNode = goalNode;
         // path.waypoints.push_back(problem.q_goal);
         int newCount = 0;
-        path.waypoints.push_back(goal);
+        Eigen::VectorXd gol= Eigen::VectorXd::Zero(problem.q_init.size());
+        gol[0] = goal[0];
+        gol[1] = goal[1];
+        // path.waypoints.push_back(goal);
         timeSteps.push_back(0.0);
         controls.push_back(Eigen::VectorXd::Zero(problem.q_init.size()));
         while (currentNode != problem.q_init) {
@@ -262,13 +339,13 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
             path.waypoints.push_back(currentNode);
             // std::cout << "pushing out " << currentNode.transpose() << std::endl;
             controls.push_back(controlMap[currentNode]);
-            timeSteps.push_back(0.4);
+            timeSteps.push_back(timeStep);
             currentNode = prevMap[currentNode];  // Move to the parent node
             newCount++;
             if(currentNode == problem.q_init)
             {
-                timeSteps.push_back(0.0);
-                controls.push_back(Eigen::VectorXd::Zero(problem.q_init.size())); 
+                // timeSteps.push_back(0.0);
+                // controls.push_back(Eigen::VectorXd::Zero(problem.q_init.size())); 
             }
             // std::cout << "current " << currentNode.transpose() << " with control " << controlMap[currentNode].transpose() << std::endl;
             // std::cout << "current Node " << currentNode << std::endl;
@@ -287,12 +364,13 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
 
 
 
-        std::reverse(path.waypoints.begin(), path.waypoints.end());  // Reverse to get the path from start to goal
-        std::reverse(path.controls.begin(), path.controls.end());  // Reverse to get the path from start to goal
+        // std::reverse(path.waypoints.begin(), path.waypoints.end());  // Reverse to get the path from start to goal
+        // std::reverse(path.controls.begin(), path.controls.end());  // Reverse to get the path from start to goal
 
+        std::cout << "final state " << path.waypoints.back() << std::endl;
         for(int i = 0; i < path.waypoints.size(); i++)
         {
-            // std::cout << "Point " << path.waypoints[i].transpose() << " with control " << path.controls[i].transpose() << " and duration " << path.durations[i] << std::endl;
+            std::cout << "Point " << path.waypoints[i].transpose() << " with control " << path.controls[i].transpose() << " and duration " << path.durations[i] << std::endl;
         }
         // std::cout << "Path length " << path.length();
     } else {
