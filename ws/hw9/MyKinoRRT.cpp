@@ -1,5 +1,6 @@
 #include "MyKinoRRT.h"
 #include <Eigen/Geometry> // Include for Rotation2D
+#include <ctime>
 
 auto vector2dCompare = [](const Eigen::Vector2d& a, const Eigen::Vector2d& b) {
     if (a.x() == b.x()) {
@@ -342,9 +343,9 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
     tempState << 17,6,0;
     Eigen::VectorXd tempState2(3);
     tempState2 << 12.5,6,0;
-    std::cout << "Agent dimensions " << problem.agent_dim.length << "width " << problem.agent_dim.width << std::endl;
+    // std::cout << "Agent dimensions " << problem.agent_dim.length << "width " << problem.agent_dim.width << std::endl;
 bool pathChill;
-
+    std::cout << "U samples " << samplesToTake << std::endl;
     // std::vector<Eigen::Vector2d> vert2 = getVertices(tempState, 5, 2, false);
     // std::vector<Eigen::Vector2d> prevVert2 = getVertices(tempState2, 5, 2, false);
 
@@ -365,7 +366,7 @@ bool pathChill;
     for(auto& point : problem.q_goal)
     {
         a++;
-        std::cout << "dimension " << a << " is " << point.first << ", " << point.second << std::endl;
+        // std::cout << "dimension " << a << " is " << point.first << ", " << point.second << std::endl;
     }
     Eigen::VectorXd temp;
 
@@ -380,15 +381,16 @@ bool pathChill;
     tree.push_back(state);
     // path.waypoints.push_back(state);
     int count = 0;
-    int n = 250000;
+    int n = 50000;
     double step = 0.25;
     int goalBiasCount = 0;
     bool goalFound = false;
     Eigen::VectorXd goalNode;
-    double timeStep = 0.4;
-    
+    double timeStep = 0.5;
+    int u = 1;
+
     while(count < n) {
-        
+
         if(goalBiasCount == 20) { // do sampling in workspace 2-d
             temp = goal;
             goalBiasCount = 0;
@@ -398,14 +400,37 @@ bool pathChill;
         nearXd = getNearestConfig(temp, tree); // get nearest state
         // std::cout << "temp " << temp.transpose() << "nearest " << nearXd.transpose(); 
 
-        Eigen::VectorXd control = 0.5 * Eigen::VectorXd::Random(problem.u_bounds.size());
-        Eigen::VectorXd newEnd = nearXd;
-        // std::cout << "nearXd " << nearXd.transpose();
+        std::vector<Eigen::VectorXd> controlVector;
+        std::vector<Eigen::VectorXd> stateVector;
+        Eigen::VectorXd control;
+        for(int i = 0; i < u; i++)
+        {
+            Eigen::VectorXd controlSample = 0.5 * Eigen::VectorXd::Random(problem.u_bounds.size());
+            controlVector.push_back(controlSample);
+            Eigen::VectorXd uSamplePose = nearXd;
+            agent.propagate(uSamplePose, controlSample, timeStep);
+            stateVector.push_back(uSamplePose);
+            // std::cout << "Sample " << uSamplePose.transpose() << " from control " << controlSample.transpose() << std::endl;
+        }
+        int controlIndex = 0;
+        double bestDist = 1000000000;
+        for(int i = 0; i < u; i++)
+        {
+            if((goal - stateVector[i]).norm() < bestDist)
+            {
+                bestDist = (goal - stateVector[i]).norm();
+                controlIndex = i;
+            }
+        }
+        // Eigen::VectorXd newEnd = nearXd;
+        // // std::cout << "nearXd " << nearXd.transpose();
 
-        agent.propagate(newEnd, control, timeStep); // generateLocalTrajectory
+        // agent.propagate(newEnd, control, timeStep); // generateLocalTrajectory
 
         // std::cout << " Controlled to " << newEnd.transpose() << std::endl;
-
+        Eigen::VectorXd newEnd = stateVector[controlIndex];
+        control = controlVector[controlIndex];
+        // std::cout << "Choosing " << newEnd.transpose() << " With control " << control.transpose() << std::endl << std::endl;
         goalBiasCount++;
         Eigen::Vector2d temp2d(newEnd[0],newEnd[1]);
         Eigen::Vector2d near2d(nearXd[0], nearXd[1]);
@@ -517,7 +542,9 @@ bool pathChill;
         std::reverse(path.waypoints.begin(), path.waypoints.end());  // Reverse to get the path from start to goal
         std::reverse(path.controls.begin(), path.controls.end());  // Reverse to get the path from start to goal
 
-        std::cout << "final state " << path.waypoints.back() << std::endl;
+        // std::cout << "final state " << path.waypoints.back() << std::endl;
+            // std::cout << "path length" << path.length() << std::endl;
+
         for(int i = 0; i < path.waypoints.size(); i++)
         {
             // std::cout << "Point " << path.waypoints[i].transpose() << " with control " << path.controls[i].transpose() << " and duration " << path.durations[i] << std::endl;
