@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
     // Select problem, plan, check, and visualize
         amp::RNG::seed(amp::RNG::randiUnbounded());
 
-    int select = 4;
+    int select = 7;
     KinodynamicProblem2D prob = problems[select];
     MyKinoRRT kino_planner;
     KinoPath path = kino_planner.plan(prob, *agentFactory[prob.agent_type]());

@@ -47,6 +47,7 @@ void MyFirstOrderUnicycle::propagate(Eigen::VectorXd& state, Eigen::VectorXd& co
     // Update the state using RK4 formula
     // std::cout << "State before " << state.transpose() << std::endl;
     state = state + (dt / 6.0) * (w1 + 2.0 * w2 + 2.0 * w3 + w4);
+        state(2) = std::atan2(std::sin(state(2)), std::cos(state(2)));
     // std::cout << "State after " << state.transpose() << std::endl << std::endl;
 };
 
@@ -67,8 +68,8 @@ void MySecondOrderUnicycle::propagate(Eigen::VectorXd& state, Eigen::VectorXd& c
         dxdt2(0) = state(3) * r * cos(theta);
         dxdt2(1) = state(3) * r * sin(theta); // dy/dt = v * sin(theta)
         dxdt2(2) = state(4);          // dtheta/dt = omega
-        dxdt2(3) = control(1);
-        dxdt2(4) = control(2);
+        dxdt2(3) = control(0);
+        dxdt2(4) = control(1);
 
         return dxdt2;
     };
@@ -82,6 +83,8 @@ void MySecondOrderUnicycle::propagate(Eigen::VectorXd& state, Eigen::VectorXd& c
     // Update the state using RK4 formula
     // std::cout << "State before " << state.transpose() << std::endl;
     state = state + (dt / 6.0) * (w1 + 2.0 * w2 + 2.0 * w3 + w4);
+            state(2) = std::atan2(std::sin(state(2)), std::cos(state(2)));
+
 }
 
 void MySimpleCar::propagate(Eigen::VectorXd& state, Eigen::VectorXd& control, double dt)
@@ -101,8 +104,8 @@ void MySimpleCar::propagate(Eigen::VectorXd& state, Eigen::VectorXd& control, do
         dxdt3(0) = state(3) * cos(theta);
         dxdt3(1) = state(3) * sin(theta); // dy/dt = v * sin(theta)
         dxdt3(2) = (state(3)/l) * tan(state(4));          // dtheta/dt = omega
-        dxdt3(3) = control(1);
-        dxdt3(4) = control(2);
+        dxdt3(3) = control(0);
+        dxdt3(4) = control(1);
 
         return dxdt3;
     };
@@ -157,11 +160,70 @@ bool hasCollision(Eigen::Vector2d j1, Eigen::Vector2d j2, const amp::Kinodynamic
         if(isInCollision(env, point))
         {
             // std::cout << "point is inside polygon" << std::endl;
-            return true;
+            return true; // collision
         }
     }
     
     return false;
+}
+
+
+
+// Helper function to check if two line segments (v1-v2 and o1-o2) intersect
+bool checkEdgeIntersection(const Eigen::Vector2d& v1, const Eigen::Vector2d& v2,
+                           const Eigen::Vector2d& o1, const Eigen::Vector2d& o2) {
+    auto crossProduct = [](const Eigen::Vector2d& a, const Eigen::Vector2d& b) {
+        return a.x() * b.y() - a.y() * b.x();
+    };
+
+    Eigen::Vector2d r = v2 - v1;
+    Eigen::Vector2d s = o2 - o1;
+    Eigen::Vector2d w = o1 - v1;
+
+    double rsCross = crossProduct(r, s);
+    double wCrossR = crossProduct(w, r);
+    double wCrossS = crossProduct(w, s);
+
+    // Check if they are parallel and non-collinear
+    if (std::abs(rsCross) < 1e-6) {
+        return false; // Parallel or collinear segments
+    }
+
+    // Calculate intersection t and u values
+    double t = crossProduct(w, s) / rsCross;
+    double u = crossProduct(w, r) / rsCross;
+
+    return (t >= 0 && t <= 1 && u >= 0 && u <= 1); // True if intersection exists within segment bounds
+}
+bool isPolygonInCollision(const amp::KinodynamicProblem2D& environment, const std::vector<Eigen::Vector2d>& vehicleVertices) {
+    // Check each obstacle in the environment
+    for (const auto& obstacle : environment.obstacles) {
+        const std::vector<Eigen::Vector2d>& obstacleVertices = obstacle.verticesCCW();
+        int obstacleSize = obstacleVertices.size();
+
+        // 1. Check if any edge of the vehicle polygon intersects any edge of the obstacle polygon
+        for (size_t i = 0; i < vehicleVertices.size(); i++) {
+            Eigen::Vector2d v1 = vehicleVertices[i];
+            Eigen::Vector2d v2 = vehicleVertices[(i + 1) % vehicleVertices.size()]; // Wrap to start
+
+            for (int j = 0; j < obstacleSize; j++) {
+                Eigen::Vector2d o1 = obstacleVertices[j];
+                Eigen::Vector2d o2 = obstacleVertices[(j + 1) % obstacleSize];
+
+                if (checkEdgeIntersection(v1, v2, o1, o2)) {
+                    return true; // Edge intersection found
+                }
+            }
+        }
+
+        // 2. Check if any vertex of the vehicle polygon is inside the obstacle
+        for (const auto& vertex : vehicleVertices) {
+            if (isInCollision(environment, vertex)) {
+                return true; // Vertex inside an obstacle
+            }
+        }
+    }
+    return false; // No collision found
 }
 
 double computeAngle(const Eigen::Vector2d& pivot, const Eigen::Vector2d& point) {
@@ -196,29 +258,31 @@ std::vector<Eigen::Vector2d> sortPts(std::vector<Eigen::Vector2d> points) {
     return points;
 }
 
-std::vector<Eigen::Vector2d> getVertices(Eigen::VectorXd state, double length, double width, bool car)
-{
+std::vector<Eigen::Vector2d> getVertices(Eigen::VectorXd state, double length, double width, bool car) {
     double x = state[0];
     double y = state[1];
-    double theta = M_PI/2.0;
+    double theta = state[2]; // Orientation in radians
 
-        double half_length = length / 2.0;
     double half_width = width / 2.0;
 
     std::vector<Eigen::Vector2d> vertices(4);
 
+    // Rotation matrix for the orientation theta
     Eigen::Rotation2D<double> rotation(theta);
 
-    vertices[0] = rotation * Eigen::Vector2d(-half_length, -half_width) + Eigen::Vector2d(x, y); // Bottom-left
-    vertices[1] = rotation * Eigen::Vector2d(half_length, -half_width) + Eigen::Vector2d(x, y);  // Bottom-right
-    vertices[2] = rotation * Eigen::Vector2d(half_length, half_width) + Eigen::Vector2d(x, y);   // Top-right
-    vertices[3] = rotation * Eigen::Vector2d(-half_length, half_width) + Eigen::Vector2d(x, y);  // Top-left
-    std::cout << "Vertices " << vertices[0].transpose() << ", " << vertices[1].transpose()  << ", " << vertices[2].transpose()  << ", "<< vertices[3].transpose()  << std::endl;
-    vertices = sortPts(vertices);
-        std::cout << "Vertices " << vertices[0].transpose() << ", " << vertices[1].transpose()  << ", " << vertices[2].transpose()  << ", "<< vertices[3].transpose()  << std::endl;
+    // Define vertices based on the rear axle position as the origin
+    vertices[0] = rotation * Eigen::Vector2d(0, -half_width) + Eigen::Vector2d(x, y);         // Rear-left
+    vertices[1] = rotation * Eigen::Vector2d(length, -half_width) + Eigen::Vector2d(x, y);    // Front-left
+    vertices[2] = rotation * Eigen::Vector2d(length, half_width) + Eigen::Vector2d(x, y);     // Front-right
+    vertices[3] = rotation * Eigen::Vector2d(0, half_width) + Eigen::Vector2d(x, y);          // Rear-right
 
+    vertices = sortPts(vertices);
+        // std::cout << "Vertices " << vertices[0].transpose() << ", " << vertices[1].transpose()  << ", " << vertices[2].transpose()  << ", "<< vertices[3].transpose()  << std::endl;
     return vertices;
 }
+
+        // std::cout << "Vertices " << vertices[0].transpose() << ", " << vertices[1].transpose()  << ", " << vertices[2].transpose()  << ", "<< vertices[3].transpose()  << std::endl;
+
 
 bool checkBounds(Eigen::VectorXd state, std::vector<std::pair<double, double>> goal)
 {
@@ -228,15 +292,48 @@ bool checkBounds(Eigen::VectorXd state, std::vector<std::pair<double, double>> g
     }
     return true;
 } 
+
+bool checkGoalBounds(Eigen::VectorXd state, std::vector<std::pair<double, double>> goal)
+{
+    for(int i = 0; i < state.size(); i++)
+    {
+        if(state[i] < (goal[i].first + 0.1) || state[i] > (goal[i].second - 0.1)) return false;
+    }
+    return true;
+} 
  
+bool MyKinoRRT::checkCarPath(const amp::KinodynamicProblem2D& problem, std::vector<Eigen::Vector2d> prev, std::vector<Eigen::Vector2d> curr)
+{
+    bool check;
+    if(prev.size() != curr.size()) return false;
+    for(int i = 0; i < prev.size(); i++)
+    {
+        if(!subpathCollsionFree(curr[i], prev[i], problem, 0.0)) return false;
+    }
+    return true; // if no collision
+}
 
 amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::DynamicAgent& agent) {
     amp::KinoPath path;
     Eigen::VectorXd state = problem.q_init; // inital state Xd
     std::vector<Eigen::VectorXd> controls;
     std::vector<double> timeSteps;
+    Eigen::VectorXd tempState(3);
+    tempState << 17,6,0;
+    Eigen::VectorXd tempState2(3);
+    tempState2 << 12.5,6,0;
     std::cout << "Agent dimensions " << problem.agent_dim.length << "width " << problem.agent_dim.width << std::endl;
-    std::vector<Eigen::Vector2d> vert = getVertices(state, 0.5, 0.1, false);
+bool pathChill;
+
+    // std::vector<Eigen::Vector2d> vert2 = getVertices(tempState, 5, 2, false);
+    // std::vector<Eigen::Vector2d> prevVert2 = getVertices(tempState2, 5, 2, false);
+
+
+    // bool pathChill = checkCarPath(problem, vert2, prevVert2);
+
+    // std::cout << "Path collisions? " << pathChill << std::endl;
+
+
     Eigen::VectorXd goal = Eigen::VectorXd::Zero(problem.q_init.size()); // Initialize a 2-dimensional VectorXd
 
     for(int i = 0; i < problem.q_goal.size(); i++)
@@ -251,7 +348,6 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
         std::cout << "dimension " << a << " is " << point.first << ", " << point.second << std::endl;
     }
     Eigen::VectorXd temp;
-    Eigen::VectorXd tempTemp = Eigen::VectorXd::Zero(problem.q_init.size()); // Initialize a 2-dimensional VectorXd
 
     Eigen::Vector2d near;
     Eigen::VectorXd nearXd = Eigen::VectorXd::Zero(problem.q_init.size());
@@ -260,7 +356,7 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
     std::vector<Eigen::VectorXd> tree;
     std::map<Eigen::VectorXd, Eigen::VectorXd, decltype(vectorXdCompare)> prevMap(vectorXdCompare); // current, node before
     std::map<Eigen::VectorXd, Eigen::VectorXd, decltype(vectorXdCompare)> controlMap(vectorXdCompare); // current, node before
-
+    std::map<Eigen::VectorXd, Eigen::VectorXd, decltype(vectorXdCompare)> prevCarPoseMap(vectorXdCompare);
     tree.push_back(state);
     // path.waypoints.push_back(state);
     int count = 0;
@@ -269,7 +365,7 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
     int goalBiasCount = 0;
     bool goalFound = false;
     Eigen::VectorXd goalNode;
-    double timeStep = 0.5;
+    double timeStep = 0.3;
     
     while(count < n) {
         
@@ -282,7 +378,7 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
         nearXd = getNearestConfig(temp, tree); // get nearest state
         // std::cout << "temp " << temp.transpose() << "nearest " << nearXd.transpose(); 
 
-        Eigen::VectorXd control = 0.5* Eigen::VectorXd::Random(problem.u_bounds.size());
+        Eigen::VectorXd control = 0.5 * Eigen::VectorXd::Random(problem.u_bounds.size());
         Eigen::VectorXd newEnd = nearXd;
         // std::cout << "nearXd " << nearXd.transpose();
 
@@ -301,23 +397,63 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
         // Eigen::Vector2d temp2d(0.5,1.5);
         // Eigen::Vector2d near2d(2.5, 1.5);
         // std::cout << "subpathCollisionFree " << subpathCollsionFree(near2d, temp2d, problem, step) << std::endl;
+        if(problem.agent_type == amp::AgentType::SimpleCar) 
+        {
+            break;
+            std::vector<Eigen::Vector2d> vert = getVertices(newEnd, 5, 2, false);
+            std::vector<Eigen::Vector2d> prevVert = getVertices(nearXd, 5, 2, false);
 
-        if(subpathCollsionFree(temp2d, near2d, problem, step)) { //check if subtrajectory is valid
-            tree.push_back(newEnd);
+            bool carChill = isPolygonInCollision(problem, vert);
 
-            prevMap[newEnd] = nearXd;
-            controlMap[newEnd] = control;
-            Eigen::Vector2d goal2d(goal[0],goal[1]);
-            Eigen::Vector2d newEnd2d(newEnd[0], newEnd[1]);
-            
-            // Check if we've reached the goal
-            if(checkBounds(newEnd, problem.q_goal)) {
-            // if((newEnd - goal).norm() < 0.25) {
+            pathChill = checkCarPath(problem, prevVert, vert);
+            // std::cout << "collisons?" << isPolygonInCollision(problem, vert) << std::endl;
+            if(!carChill && pathChill) { //check if subtrajectory is valid
+                Eigen::Vector2d problemCorner(13,3);
+                bool problemCar = false;
+                for(auto& vertex:vert)
+                {
+                    if((vertex - problemCorner).norm() < 0.2)
+                    {
+                        problemCar = true;
+                    }
+                }
+                if(problemCar) continue;
+                tree.push_back(newEnd);
 
-                std::cout << "goal found " << std::endl;
-                goalFound = true;
-                goalNode = newEnd;
-                break;
+                prevMap[newEnd] = nearXd;
+                prevCarPoseMap[newEnd] = nearXd;
+                controlMap[newEnd] = control;
+                Eigen::Vector2d goal2d(goal[0],goal[1]);
+                Eigen::Vector2d newEnd2d(newEnd[0], newEnd[1]);
+                
+                // Check if we've reached the goal
+                if(checkBounds(newEnd, problem.q_goal)) {
+                // if((newEnd - goal).norm() < 0.25) {
+
+                    std::cout << "goal found " << std::endl;
+                    goalFound = true;
+                    goalNode = newEnd;
+                    break;
+                }
+            }
+        } else {
+            if(subpathCollsionFree(temp2d, near2d, problem, step)) { //check if subtrajectory is valid
+                tree.push_back(newEnd);
+
+                prevMap[newEnd] = nearXd;
+                controlMap[newEnd] = control;
+                Eigen::Vector2d goal2d(goal[0],goal[1]);
+                Eigen::Vector2d newEnd2d(newEnd[0], newEnd[1]);
+                
+                // Check if we've reached the goal
+                if(checkBounds(newEnd, problem.q_goal)) {
+                // if((newEnd - goal).norm() < 0.25) {
+
+                    std::cout << "goal found " << std::endl;
+                    goalFound = true;
+                    goalNode = newEnd;
+                    break;
+                }
             }
         }
         count++;
@@ -342,13 +478,6 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
             timeSteps.push_back(timeStep);
             currentNode = prevMap[currentNode];  // Move to the parent node
             newCount++;
-            if(currentNode == problem.q_init)
-            {
-                // timeSteps.push_back(0.0);
-                // controls.push_back(Eigen::VectorXd::Zero(problem.q_init.size())); 
-            }
-            // std::cout << "current " << currentNode.transpose() << " with control " << controlMap[currentNode].transpose() << std::endl;
-            // std::cout << "current Node " << currentNode << std::endl;
             if (newCount > n)
             {
                 std::cout << "breaking early" << std::endl;
@@ -372,7 +501,7 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
         std::cout << "final state " << path.waypoints.back() << std::endl;
         for(int i = 0; i < path.waypoints.size(); i++)
         {
-            std::cout << "Point " << path.waypoints[i].transpose() << " with control " << path.controls[i].transpose() << " and duration " << path.durations[i] << std::endl;
+            // std::cout << "Point " << path.waypoints[i].transpose() << " with control " << path.controls[i].transpose() << " and duration " << path.durations[i] << std::endl;
         }
         // std::cout << "Path length " << path.length();
     } else {
