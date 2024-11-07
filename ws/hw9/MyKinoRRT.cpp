@@ -121,7 +121,22 @@ void MySimpleCar::propagate(Eigen::VectorXd& state, Eigen::VectorXd& control, do
     state = state + (dt / 6.0) * (w1 + 2.0 * w2 + 2.0 * w3 + w4);
 }
 
-bool isInCollision(const amp::KinodynamicProblem2D& environment, const Eigen::Vector2d& point) {
+double pointToSegmentDistance(const Eigen::Vector2d& p, const Eigen::Vector2d& v, const Eigen::Vector2d& w) {
+    // Projection of point p onto the line segment vw
+    Eigen::Vector2d segment = w - v;
+    double segmentLengthSquared = segment.squaredNorm();
+    if (segmentLengthSquared == 0.0) return (p - v).norm();  // v == w case
+
+    // Projection factor t of point p onto the line vw
+    double t = ((p - v).dot(segment)) / segmentLengthSquared;
+    t = std::clamp(t, 0.0, 1.0);  // Clamp to segment boundaries
+
+    // Find the projection point on the segment
+    Eigen::Vector2d projection = v + t * segment;
+    return (p - projection).norm();  // Distance from p to the segment
+}
+
+bool isInCollision(const amp::KinodynamicProblem2D& environment, const Eigen::Vector2d& point, double cushion = 0.05) {
     for (const auto& polygon : environment.obstacles) {
         const std::vector<Eigen::Vector2d>& vertices = polygon.verticesCCW();
         int num_vertices = vertices.size();
@@ -131,10 +146,15 @@ bool isInCollision(const amp::KinodynamicProblem2D& environment, const Eigen::Ve
         for (int i = 0, j = num_vertices - 1; i < num_vertices; j = i++) {
             // Check if the ray crosses the edge between vertices[i] and vertices[j]
             if ((vertices[i].y() > point.y()) != (vertices[j].y() > point.y()) &&
-                (point.x() < (vertices[j].x() - vertices[i].x()) * (point.y() - vertices[i].y()) / 
+                (point.x() < (vertices[j].x() - vertices[i].x()) * (point.y() - vertices[i].y()) /
                 (vertices[j].y() - vertices[i].y()) + vertices[i].x())) {
                 // Flip the inside flag
                 inside = !inside;
+            }
+
+            // Check if the point is within the cushion distance of this edge
+            if (pointToSegmentDistance(point, vertices[i], vertices[j]) < cushion) {
+                return true;  // Point is within the buffer zone of this edge
             }
         }
 
@@ -360,12 +380,12 @@ bool pathChill;
     tree.push_back(state);
     // path.waypoints.push_back(state);
     int count = 0;
-    int n = 200000;
+    int n = 250000;
     double step = 0.25;
     int goalBiasCount = 0;
     bool goalFound = false;
     Eigen::VectorXd goalNode;
-    double timeStep = 0.3;
+    double timeStep = 0.4;
     
     while(count < n) {
         
@@ -399,7 +419,6 @@ bool pathChill;
         // std::cout << "subpathCollisionFree " << subpathCollsionFree(near2d, temp2d, problem, step) << std::endl;
         if(problem.agent_type == amp::AgentType::SimpleCar) 
         {
-            break;
             std::vector<Eigen::Vector2d> vert = getVertices(newEnd, 5, 2, false);
             std::vector<Eigen::Vector2d> prevVert = getVertices(nearXd, 5, 2, false);
 
