@@ -309,7 +309,12 @@ bool checkBounds(Eigen::VectorXd state, std::vector<std::pair<double, double>> g
 {
     for(int i = 0; i < state.size(); i++)
     {
+        if(i == 4) {
+            if(state[i] < -M_PI/4 || state[i] > M_PI/4) return false;
+
+        } else {
         if(state[i] < goal[i].first || state[i] > goal[i].second) return false;
+        }
     }
     return true;
 } 
@@ -343,7 +348,9 @@ amp::KinoPath MyKinoRRT::plan(const amp::KinodynamicProblem2D& problem, amp::Dyn
     tempState << 17,6,0;
     Eigen::VectorXd tempState2(3);
     tempState2 << 12.5,6,0;
-    // std::cout << "Agent dimensions " << problem.agent_dim.length << "width " << problem.agent_dim.width << std::endl;
+    double carLength = problem.agent_dim.length;
+    double carWidth =problem.agent_dim.width;
+    std::cout << "Agent dimensions " << problem.agent_dim.length << "width " << problem.agent_dim.width << std::endl;
 bool pathChill;
     std::cout << "U samples " << samplesToTake << std::endl;
     // std::vector<Eigen::Vector2d> vert2 = getVertices(tempState, 5, 2, false);
@@ -373,6 +380,7 @@ bool pathChill;
     Eigen::Vector2d near;
     Eigen::VectorXd nearXd = Eigen::VectorXd::Zero(problem.q_init.size());
     Eigen::VectorXd newEndXd = Eigen::VectorXd::Zero(problem.q_init.size());
+        if(problem.agent_type == amp::AgentType::SimpleCar) std::cout << "VROOOOOM" << std::endl;
 
     std::vector<Eigen::VectorXd> tree;
     std::map<Eigen::VectorXd, Eigen::VectorXd, decltype(vectorXdCompare)> prevMap(vectorXdCompare); // current, node before
@@ -386,8 +394,8 @@ bool pathChill;
     int goalBiasCount = 0;
     bool goalFound = false;
     Eigen::VectorXd goalNode;
-    double timeStep = 0.5;
-    int u = 1;
+    double timeStep = 0.4;
+    int u = 5;
 
     while(count < n) {
 
@@ -444,12 +452,13 @@ bool pathChill;
         // std::cout << "subpathCollisionFree " << subpathCollsionFree(near2d, temp2d, problem, step) << std::endl;
         if(problem.agent_type == amp::AgentType::SimpleCar) 
         {
-            std::vector<Eigen::Vector2d> vert = getVertices(newEnd, 5, 2, false);
-            std::vector<Eigen::Vector2d> prevVert = getVertices(nearXd, 5, 2, false);
+            std::vector<Eigen::Vector2d> vert = getVertices(newEnd, carLength, carWidth, false);
+            std::vector<Eigen::Vector2d> prevVert = getVertices(nearXd, carLength, carWidth, false);
 
             bool carChill = isPolygonInCollision(problem, vert);
-
-            pathChill = checkCarPath(problem, prevVert, vert);
+            pathChill = true;
+            // bool carChill = false;
+            // pathChill = checkCarPath(problem, prevVert, vert);
             // std::cout << "collisons?" << isPolygonInCollision(problem, vert) << std::endl;
             if(!carChill && pathChill) { //check if subtrajectory is valid
                 Eigen::Vector2d problemCorner(13,3);
@@ -463,6 +472,8 @@ bool pathChill;
                 }
                 if(problemCar) continue;
                 tree.push_back(newEnd);
+                // std::cout << "Adding " << newEnd.transpose() << " With control " << control.transpose() << std::endl << std::endl;
+
 
                 prevMap[newEnd] = nearXd;
                 prevCarPoseMap[newEnd] = nearXd;
@@ -580,7 +591,13 @@ Eigen::VectorXd MyKinoRRT::getRandomConfig(const amp::KinodynamicProblem2D& prob
     Eigen::VectorXd q_random(problem.q_bounds.size());
     for(int i = 0; i < problem.q_bounds.size(); i++)
     {
+        if(i == 4)
+        {
+            q_random(i) = -M_PI/4 + (M_PI/2) * ((double) rand() / RAND_MAX);
+
+        } else {
         q_random(i) = problem.q_bounds[i].first + (problem.q_bounds[i].second - problem.q_bounds[i].first) * ((double) rand() / RAND_MAX);
+        }
     }
     // double y = -3 + (6) * ((double) rand() / RAND_MAX);
     return q_random;
