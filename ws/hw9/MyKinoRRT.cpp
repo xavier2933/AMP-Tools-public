@@ -92,8 +92,8 @@ void MySimpleCar::propagate(Eigen::VectorXd& state, Eigen::VectorXd& control, do
 {
     auto dynamics3 = [this](const Eigen::VectorXd& state, const Eigen::VectorXd& control) -> Eigen::VectorXd {
         Eigen::VectorXd dxdt3(5);
-        double l = 5.0;
-        double w = 2.0;
+        double l = 2.0;
+        double w = 1.0;
         double sigma = state(3);
         double r = 0.25;
         Eigen::VectorXd dxdt(3);
@@ -389,13 +389,13 @@ bool pathChill;
     tree.push_back(state);
     // path.waypoints.push_back(state);
     int count = 0;
-    int n = 50000;
+    int n = 450000;
     double step = 0.25;
     int goalBiasCount = 0;
     bool goalFound = false;
     Eigen::VectorXd goalNode;
     double timeStep = 0.4;
-    int u = 5;
+    int u = 1;
 
     while(count < n) {
 
@@ -463,13 +463,7 @@ bool pathChill;
             if(!carChill && pathChill) { //check if subtrajectory is valid
                 Eigen::Vector2d problemCorner(13,3);
                 bool problemCar = false;
-                for(auto& vertex:vert)
-                {
-                    if((vertex - problemCorner).norm() < 0.2)
-                    {
-                        problemCar = true;
-                    }
-                }
+ 
                 if(problemCar) continue;
                 tree.push_back(newEnd);
                 // std::cout << "Adding " << newEnd.transpose() << " With control " << control.transpose() << std::endl << std::endl;
