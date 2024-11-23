@@ -78,7 +78,7 @@ problem.obstacles = {
     amp::Polygon(obstacle1),
     amp::Polygon(obstacle2),
     amp::Polygon(obstacle3),
-        amp::Polygon(PUDDLE),
+        // amp::Polygon(PUDDLE),
 
     amp::Polygon(obstacle4)
 };
