@@ -2,14 +2,29 @@ Map:
   Dimensions:
   - 0
   - 0
-  - 10
-  - 10
+  - 30
+  - 30
   Obstacles:
     obstacle0:
     - 4
     - 3
     - 6
     - 10
+    obstacle1:
+    - 10
+    - 6
+    - 13
+    - 20
+    obstacle2:
+    - 20
+    - 20
+    - 22
+    - 30
+    obstacle3:
+    - 17
+    - 10
+    - 27
+    - 12
 Agents:
   agent0:
     Model: None
