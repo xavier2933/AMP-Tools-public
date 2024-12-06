@@ -61,7 +61,7 @@ fs::path appendTimeToFileName(const fs::path& fileName) {
 
 template <typename SimpleSetupPtr>
 void write2sys(const SimpleSetupPtr& problem, const std::vector<Agent*>& agents, const std::string& problem_name) {
-    fs::path sol_dir = "solutions/" + GetCurrentTimeForFileName();
+    fs::path sol_dir = "solutions/bruh";
     fs::create_directories(sol_dir);
 
     // Copy the problem file
@@ -74,7 +74,7 @@ void write2sys(const SimpleSetupPtr& problem, const std::vector<Agent*>& agents,
     for (auto agent : agents) {
         std::string fileName = agent->getName() + ".txt";
         filePath = fs::current_path() / sol_dir / fs::path(fileName);
-        std::ofstream file(filePath);
+        std::ofstream file(filePath, std::ios::app);
 
         // Write based on problem type (geometric or control)
         if constexpr (std::is_same_v<SimpleSetupPtr, og::SimpleSetupPtr>) {

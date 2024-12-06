@@ -37,6 +37,8 @@
 #include <ompl/control/SimpleSetup.h>
 #include <ompl/base/spaces/SE2StateSpace.h>
 #include <ompl/control/planners/rrt/RRT.h>
+#include <ompl/control/planners/ltl/LTLPlanner.h>
+
 #include <ompl/control/planners/sst/SST.h>
 #include "World.h"
 #include "StateSpaceDatabase.h"
@@ -130,6 +132,7 @@ void planControl(std::string planner_string, std::string problem_file) {
 
 int main(int argc, char ** argv) {
     std::string plannerName = "RRT";
+    // oc::LTLPlanner ltl;
     // std::string problem = "DemoCntrl";
     std::string problem = "WS1Car";
     OMPL_INFORM("Planning for OMPL Lecture Example using Control Planning with %s", plannerName.c_str());

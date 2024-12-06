@@ -43,12 +43,22 @@
 #include "PostProcessing.h"
 
 
+#include <ctime>
+
+// namespace ltl = ompl::control::ltl;
 namespace fs = std::filesystem;
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
 
+struct StationTask {
+    public:
+        int taskComplete = 0;
+        int serviced = 0;
+        Eigen::Vector2d goal;
+};
+
 // this function sets-up an ompl planning problem for an arbtrary number of agents
-og::SimpleSetupPtr geometricSimpleSetUp(const World *w) {
+og::SimpleSetupPtr geometricSimpleSetUp(const World *w, Eigen::Vector2d init, Eigen::Vector2d gol) {
     // grab the agent -- assume only one
     Agent *a = w->getAgents()[0];
 
@@ -69,14 +79,14 @@ og::SimpleSetupPtr geometricSimpleSetUp(const World *w) {
     
     // create start
     ob::ScopedState<ob::SE2StateSpace> start(space);
-    start->setX(a->getStartLocation()[0]);
-    start->setY(a->getStartLocation()[1]);
+    start->setX(init[0]);
+    start->setY(init[1]);
     start->setYaw(0.0);
 
     // create goal
     ob::ScopedState<ob::SE2StateSpace> goal(space);
-    goal->setX(a->getGoalLocation()[0]);
-    goal->setY(a->getGoalLocation()[1]);
+    goal->setX(gol[0]);
+    goal->setY(gol[1]);
     goal->setYaw(0.0);
 
     // save start and goal with tolerance
@@ -87,11 +97,12 @@ og::SimpleSetupPtr geometricSimpleSetUp(const World *w) {
 }
 
 // main planning function -- uses simple setup
-void planGeometric(std::string planner_string, std::string problem_file) {
+void planGeometric(std::string planner_string, std::string problem_file, Eigen::Vector2d init, Eigen::Vector2d goal) {
     //create world from YAML file
-    World *w = yaml2world("problems/" + problem_file + ".yml");
+    std::string file = "problems/" + problem_file + ".yml";
+    World *w = yaml2world(file);
     // create simple setup object
-    og::SimpleSetupPtr ss = geometricSimpleSetUp(w);
+    og::SimpleSetupPtr ss = geometricSimpleSetUp(w, init, goal);
 
     // set planner
     ob::PlannerPtr planner = nullptr;
@@ -118,13 +129,75 @@ void planGeometric(std::string planner_string, std::string problem_file) {
     if (solved) {
         ss->simplifySolution();
         write2sys(ss, w->getAgents(), problem_file);
+
+        if constexpr (std::is_same_v<og::SimpleSetupPtr, og::SimpleSetupPtr>) {
+            const og::PathGeometric& path = ss->getSolutionPath();
+            std::cout << "Solution Path (Matrix Format):" << std::endl;
+            path.printAsMatrix(std::cout); // Prints the path to the command line
+        } else {
+            std::cerr << "Error: Problem type is not geometric!" << std::endl;
+        }
     }
 }
 
 int main(int argc, char ** argv)
 {
-    std::string plannerName = "RRT";
+    std::ofstream log_file("planning_log.txt", std::ios::app);
+    std::time_t now = std::time(nullptr); 
+    std::cout << now%2 << std::endl; 
+    int even = now%2;
+    Eigen::Vector2d init(1.0, 10.0);
+    Eigen::Vector2d goal;
+    Eigen::Vector2d goal2;
+    Eigen::Vector2d init2; 
+
+    std::string visited = "init ";
+
+    std::vector<StationTask> stations;
+    std::vector<StationTask> serviced;
+    StationTask s1;
+    s1.goal << 25.0, 25.0;
+    stations.push_back(s1);
+    StationTask s2;
+    s2.goal << 7.0, 7.0;
+    stations.push_back(s2);
+    StationTask s3;
+    s3.goal << 5.0, 1.0;
+    stations.push_back(s3);
+
+    Eigen::Vector2d curr(2.0, 7.0);
+    Eigen::Vector2d finalGoal(25.0, 1.0);
+
+    int firstIndex = now % stations.size(); 
+        std::string plannerName = "RRT";
     std::string problem = "DemoGeo";
+
+    while(serviced.size() != stations.size())
+    {
+        std::time_t loopTime = std::time(nullptr);
+        firstIndex = (firstIndex + 1) % stations.size();
+        if(stations[firstIndex].serviced == 1)
+        {
+            continue;
+        }
+        std::cout << "Planning station " << firstIndex << std::endl;
+        planGeometric(plannerName, problem, curr, stations[firstIndex].goal);
+        visited = visited + " -> " + std::to_string(firstIndex);
+        curr = stations[firstIndex].goal;
+        if(loopTime % 3 != 1)
+        {
+            serviced.push_back(stations[firstIndex]);
+            stations[firstIndex].serviced = 1;
+            std::cout << "SERVICED " << firstIndex << std::endl;
+        } else {
+            std::cout << "DID NOT service " << firstIndex << std::endl;
+            std::cout << "Current location " << curr.transpose() << std::endl;
+        }
+    }
+    planGeometric(plannerName, problem, curr, finalGoal);
+    std::cout << "VISITED " << visited << std::endl;
+
     OMPL_INFORM("Planning for OMPL Lecture Example using Gemoetric Planning with %s", plannerName.c_str());
-    planGeometric(plannerName, problem);
+
+
 }
