@@ -42,6 +42,8 @@
 #include <fstream>
 #include <vector>
 #include <iomanip> // For formatting numbers
+#include <ctime>
+
 
 //  #include "PostProcessing.h"
   
@@ -50,24 +52,50 @@
   
  namespace ob = ompl::base;
  namespace og = ompl::geometric;
-  
- bool isStateValid(const ob::State *state)
- {
-     // cast the abstract state type to the type we expect
-     const auto *se3state = state->as<ob::SE3StateSpace::StateType>();
-  
-     // extract the first component of the state and cast it to what we expect
-     const auto *pos = se3state->as<ob::RealVectorStateSpace::StateType>(0);
-  
-     // extract the second component of the state and cast it to what we expect
-     const auto *rot = se3state->as<ob::SO3StateSpace::StateType>(1);
-  
-     // check validity of state defined by pos & rot
-  
-  
-     // return a value that is always true but uses the two variables we define, so we avoid compiler warnings
-     return (const void*)rot != (const void*)pos;
- }
+
+#include <cmath> // For sqrt and pow
+
+struct SphereObstacle {
+    double x, y, z, radius;
+};
+
+struct StationTask {
+    public:
+        int taskComplete = 0;
+        int serviced = 0;
+        Eigen::VectorXd goal = Eigen::VectorXd(3);
+};
+
+std::vector<SphereObstacle> obstacles = {
+    {0.0, 0.0, 0.0, 0.2}, // Example obstacle at origin with radius 0.2
+    {0.5, 0.5, 0.5, 0.1},  // Another obstacle
+    {1.0, 1.0, 0.0, 1.0}  // Another obstacle
+
+};
+
+bool isStateValid(const ob::State *state)
+{
+    const auto *se3state = state->as<ob::SE3StateSpace::StateType>();
+    const auto *pos = se3state->as<ob::RealVectorStateSpace::StateType>(0);
+
+    double x = pos->values[0];
+    double y = pos->values[1];
+    double z = pos->values[2];
+
+    // Check collision with each obstacle
+    for (const auto &obstacle : obstacles) {
+        double dist = std::sqrt(std::pow(x - obstacle.x, 2) +
+                                std::pow(y - obstacle.y, 2) +
+                                std::pow(z - obstacle.z, 2));
+        if (dist <= obstacle.radius) {
+            return false; // State is in collision
+            std::cout << "invalid state found ==========" << std::endl;
+        }
+    }
+
+    return true; // State is valid
+}
+
   
  void plan3d()
  {
@@ -76,8 +104,8 @@
   
      // set the bounds for the R^3 part of SE(3)
      ob::RealVectorBounds bounds(3);
-     bounds.setLow(-1);
-     bounds.setHigh(1);
+     bounds.setLow(-2);
+     bounds.setHigh(2);
   
      space->setBounds(bounds);
   
@@ -135,8 +163,9 @@
  }
 
 
-void planWithSimpleSetup(const std::string &output_file)
+void planWithSimpleSetup(const std::string &output_file, Eigen::VectorXd startVec, Eigen::VectorXd goalVec)
 {
+
     std::ofstream out_file(output_file, std::ios::app);
     if (!out_file.is_open()) {
         std::cerr << "Failed to open output file: " << output_file << std::endl;
@@ -146,18 +175,23 @@ void planWithSimpleSetup(const std::string &output_file)
     auto space(std::make_shared<ob::SE3StateSpace>());
 
     ob::RealVectorBounds bounds(3);
-    bounds.setLow(-1);
-    bounds.setHigh(1);
+    bounds.setLow(-10);
+    bounds.setHigh(10);
     space->setBounds(bounds);
 
     og::SimpleSetup ss(space);
     ss.setStateValidityChecker([](const ob::State *state) { return isStateValid(state); });
 
-    ob::ScopedState<> start(space);
-    start.random();
 
+
+    ob::ScopedState<> start(space);
     ob::ScopedState<> goal(space);
-    goal.random();
+
+    for(int i = 0; i < 7; i++)
+    {
+        start[i] = startVec[i];
+        goal[i] = goalVec[i];
+    }
 
     ss.setStartAndGoalStates(start, goal);
     ss.setup();
@@ -199,13 +233,76 @@ void planWithSimpleSetup(const std::string &output_file)
   
  int main(int /*argc*/, char ** /*argv*/)
  {
-     std::cout << "OMPL version: " << OMPL_VERSION << std::endl;
-  
-    //  plan3d();
-  
+    std::string output_file = "SampleOut.txt";
+    if (std::remove(output_file.c_str()) == 0) {
+        std::cout << "Deleted existing file: " << output_file << std::endl;
+    }
+
+    std::cout << "OMPL version: " << OMPL_VERSION << std::endl;
+
+    std::time_t now = std::time(nullptr);
+
+    std::vector<StationTask> stations;
+    std::vector<StationTask> serviced;
+
+    Eigen::VectorXd startVec(7);
+    Eigen::VectorXd goalVec(7);
+
+    StationTask s1;
+    s1.goal << 1.0, 1.0, 1.5;
+    stations.push_back(s1);
+
+    StationTask s2;
+    s2.goal << 9.0, 9.0, 9.0;
+    stations.push_back(s2);
+
+    std::string visited = "init ";
+    Eigen::VectorXd init(7);
+    Eigen::VectorXd curr(7);
+    Eigen::VectorXd finalGoal(7);
+
+    init << -0.5, -0.5, 0.5, 1.0, 0.0, 0.0, 0.0;  // w, x, y, z
+    finalGoal << 1.9, 1.9, -0.5, 1.0, 0.0, 0.0, 0.0;  // w, x, y, z
+    goalVec << 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0;  // w, x, y, z
+
+    curr = init;
+
+    // Randomly select a station to start
+    int firstIndex = now % stations.size();
+
+    while(serviced.size() != stations.size())
+    {
+        std::time_t loopTime = std::time(nullptr);
+        firstIndex = (firstIndex + 1) % stations.size();
+        if(stations[firstIndex].serviced == 1)
+        {
+            continue;
+        }
+        std::cout << "Planning station " << firstIndex << std::endl;
+        goalVec[0] = stations[firstIndex].goal[0];
+        goalVec[1] = stations[firstIndex].goal[1];
+        goalVec[2] = stations[firstIndex].goal[2];
+
+        planWithSimpleSetup(output_file, curr, goalVec);
+        visited = visited + " -> " + std::to_string(firstIndex);
+        curr[0] = stations[firstIndex].goal[0];
+        curr[1] = stations[firstIndex].goal[1];
+        curr[2] = stations[firstIndex].goal[2];
+        if(loopTime % 3 != 1)
+        {
+            serviced.push_back(stations[firstIndex]);
+            stations[firstIndex].serviced = 1;
+            std::cout << "SERVICED " << firstIndex << std::endl;
+        } else {
+            std::cout << "DID NOT service " << firstIndex << std::endl;
+            std::cout << "Current location " << curr.transpose() << std::endl;
+        }
+    }
+    planWithSimpleSetup(output_file, curr, finalGoal);
+
      std::cout << std::endl << std::endl;
   
-     planWithSimpleSetup("SampleOut.txt");
+    //  planWithSimpleSetup("SampleOut.txt", startVec, goalVec);
   
      return 0;
  }
