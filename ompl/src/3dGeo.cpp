@@ -313,8 +313,8 @@ void planWithSimpleSetup(const std::string &output_file, Eigen::VectorXd startVe
 }
 
   
- int main(int /*argc*/, char ** /*argv*/)
- {
+int main(int /*argc*/, char ** /*argv*/)
+{
     std::string output_file = "SampleOut.txt";
     if (std::remove(output_file.c_str()) == 0) {
         std::cout << "Deleted existing file: " << output_file << std::endl;
@@ -324,97 +324,36 @@ void planWithSimpleSetup(const std::string &output_file, Eigen::VectorXd startVe
 
     std::time_t now = std::time(nullptr);
 
-    std::vector<StationTask> stations;
-    std::vector<StationTask> serviced;
-
-    Eigen::VectorXd startVec(7);
-    Eigen::VectorXd goalVec(7);
-
-    StationTask s1;
-    s1.name = "T0_S1";
-    s1.goal << 1.0, 1.0, 1.5;
-    stations.push_back(s1);
-
-    StationTask s2;
-    s2.name = "T0_S3";
-    s2.goal << 9.0, 9.0, 9.0;
-    stations.push_back(s2);
-
-    std::string visited = "init ";
-    Eigen::VectorXd init(7);
-    Eigen::VectorXd curr(7);
-    Eigen::VectorXd finalGoal(7);
-
-    // State state;
-
-    init << -0.5, -0.5, 0.5, 1.0, 0.0, 0.0, 0.0;  // w, x, y, z
-    finalGoal << 1.9, 1.9, -0.5, 1.0, 0.0, 0.0, 0.0;  // w, x, y, z
-    goalVec << 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0;  // w, x, y, z
-
-    curr = init;
-
-    // Randomly select a station to start
-    int firstIndex = now % stations.size();
-
-    std::vector<std::string> stationStrings;
-    stationStrings.push_back("T0_S1");
-    stationStrings.push_back("T0_S3");
-
-    bool accept =false;
-
     AutomatonState currentState = AutomatonState::T0_init;
-AutomatonState nextState;
+    AutomatonState nextState;
     TaskStates states;
 
     planWithSimpleSetup(output_file, stateToGoal(currentState), stateToGoal(AutomatonState::T0_S1));
-    std::cout << "Planning from " << stateToGoal(currentState) << " to " << stateToGoal(AutomatonState::T0_S1) << std::endl;
     states.s1 = 1;
     currentState = AutomatonState::T0_S1;
 
-    // std::cout << "Next state: " << stateToString(getNextState(currentState, 1,0)) << std::endl;
-
     while(currentState != AutomatonState::accept_all)
     {
+        now = std::time(nullptr);
         nextState = getNextState(currentState, states.s1, states.s2);
         std::cout << "Next state: " << stateToString(nextState) << std::endl;
 
-        planWithSimpleSetup(output_file, stateToGoal(currentState), stateToGoal(nextState));
+        if(nextState != currentState)
+        {
+            planWithSimpleSetup(output_file, stateToGoal(currentState), stateToGoal(nextState));
+        }
         // map string to int
-        states.s2 = 1;
+        if(now%3 == 1) 
+        {
+            states.s2 = 1;
+            std::cout << "state 2 success " << std::endl;
+        } else {
+            std::cout << "RETRYING" << std::endl;
+        }
         currentState = nextState;
     }
-    // while(!accept)
-    // {
-    //     std::time_t loopTime = std::time(nullptr);
-    //     firstIndex = (firstIndex + 1) % stations.size();
-    //     if(stations[firstIndex].serviced == 1)
-    //     {
-    //         continue;
-    //     }
-    //     std::cout << "Planning station " << firstIndex << std::endl;
-    //     goalVec[0] = stations[firstIndex].goal[0];
-    //     goalVec[1] = stations[firstIndex].goal[1];
-    //     goalVec[2] = stations[firstIndex].goal[2];
-
-    //     planWithSimpleSetup(output_file, curr, goalVec);
-    //     visited = visited + " -> " + std::to_string(firstIndex);
-    //     curr[0] = stations[firstIndex].goal[0];
-    //     curr[1] = stations[firstIndex].goal[1];
-    //     curr[2] = stations[firstIndex].goal[2];
-    //     if(loopTime % 3 != 1)
-    //     {
-    //         serviced.push_back(stations[firstIndex]);
-    //         stations[firstIndex].serviced = 1;
-            
-    //         std::cout << "SERVICED " << firstIndex << std::endl;
-    //     } else {
-    //         std::cout << "DID NOT service " << firstIndex << std::endl;
-    //         std::cout << "Current location " << curr.transpose() << std::endl;
-    //     }
-    //     if(state.s1 == 1 && state.s2 == 1) accept = true;
-    // }
 
     std::cout << std::endl << std::endl;
-    
+
     return 0;
- }
+}
