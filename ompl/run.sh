@@ -42,7 +42,7 @@ if [ $? == 0 ]; then
     if [ -n "$executable" ]; then
         ./build/"$executable" "${@:2}"
         if [ $? -eq 0 ]; then
-            python3 visualize.py
+            python3 visualize3d.py
         else
             echo "Executable $executable failed with exit code $?."
         fi

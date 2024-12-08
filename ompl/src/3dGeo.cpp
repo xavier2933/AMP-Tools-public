@@ -34,26 +34,30 @@
   
  /* Author: Ioan Sucan */
   
- #include <ompl/base/SpaceInformation.h>
- #include <ompl/base/spaces/SE3StateSpace.h>
- #include <ompl/geometric/planners/rrt/RRTConnect.h>
- #include <ompl/geometric/SimpleSetup.h>
-
+#include <iostream>
 #include <fstream>
 #include <vector>
 #include <iomanip> // For formatting numbers
+#include <cmath>   // For sqrt and pow
 #include <ctime>
 
+#include <ompl/config.h>
+#include <ompl/base/SpaceInformation.h>
+#include <ompl/base/spaces/SE3StateSpace.h>
+#include <ompl/geometric/SimpleSetup.h>
+#include <ompl/geometric/planners/rrt/RRTConnect.h>
 
-//  #include "PostProcessing.h"
-  
- #include <ompl/config.h>
- #include <iostream>
-  
- namespace ob = ompl::base;
- namespace og = ompl::geometric;
+// #include "PostProcessing.h"
 
-#include <cmath> // For sqrt and pow
+namespace ob = ompl::base;
+namespace og = ompl::geometric;
+
+enum class AutomatonState {
+    T0_init,
+    T0_S1,
+    T0_S3,
+    accept_all
+};
 
 struct SphereObstacle {
     double x, y, z, radius;
@@ -61,9 +65,16 @@ struct SphereObstacle {
 
 struct StationTask {
     public:
+        std::string name;
         int taskComplete = 0;
         int serviced = 0;
         Eigen::VectorXd goal = Eigen::VectorXd(3);
+};
+
+struct TaskStates {
+    public:
+        int s1 = 0;
+        int s2 = 0;
 };
 
 std::vector<SphereObstacle> obstacles = {
@@ -162,6 +173,67 @@ bool isStateValid(const ob::State *state)
          std::cout << "No solution found" << std::endl;
  }
 
+AutomatonState getNextState(AutomatonState currentState, bool s1, bool s2) {
+    switch (currentState) {
+        case AutomatonState::T0_init:
+            if (s1 && s2) return AutomatonState::accept_all;
+            if (s1 && !s2) return AutomatonState::T0_S1;
+            if (!s1 && !s2) return AutomatonState::T0_init;
+            if (!s1 && s2) return AutomatonState::T0_S3;
+            break;
+
+        case AutomatonState::T0_S1:
+            if (s2) return AutomatonState::accept_all;
+            if (!s2) return AutomatonState::T0_S1;
+            break;
+
+        case AutomatonState::T0_S3:
+            if (s1) return AutomatonState::accept_all;
+            if (!s1) return AutomatonState::T0_S3;
+            break;
+
+        case AutomatonState::accept_all:
+            // Remain in accept state
+            return AutomatonState::accept_all;
+    }
+    return currentState; // Default: remain in the same state
+}
+
+std::string stateToString(AutomatonState state) {
+    switch (state) {
+        case AutomatonState::T0_init: return "T0_init";
+        case AutomatonState::T0_S1: return "T0_S1";
+        case AutomatonState::T0_S3: return "T0_S3";
+        case AutomatonState::accept_all: return "accept_all";
+        default: return "Unknown State";
+    }
+}
+
+Eigen::VectorXd stateToGoal(AutomatonState state)
+{
+    Eigen::VectorXd res(3); // Initialize a 3-element vector
+    switch (state) {
+        case AutomatonState::T0_init: 
+            res << 3.0, -5.0, 0.0;
+            break;
+        case AutomatonState::T0_S1: 
+            res << 9.0, 9.0, 9.0;
+            break;
+        case AutomatonState::T0_S3: 
+            res << -9.0, -9.0, -9.0;
+            break;
+        case AutomatonState::accept_all: 
+            res << -9.0, 0.0, 0.0;
+            break;
+        default:
+            res.setZero(); // Default to a zero vector for safety
+            break;
+    }
+    return res;
+}
+
+
+
 
 void planWithSimpleSetup(const std::string &output_file, Eigen::VectorXd startVec, Eigen::VectorXd goalVec)
 {
@@ -189,8 +261,18 @@ void planWithSimpleSetup(const std::string &output_file, Eigen::VectorXd startVe
 
     for(int i = 0; i < 7; i++)
     {
-        start[i] = startVec[i];
-        goal[i] = goalVec[i];
+        if(i == 3) 
+        {
+            start[i] = 1.0;
+            goal[i] = 1.0;
+        } else if (i > 3)
+        {
+            start[i] = 0.0;
+            goal[i] = 0.0;
+        } else {
+            start[i] = startVec[i];
+            goal[i] = goalVec[i];
+        }
     }
 
     ss.setStartAndGoalStates(start, goal);
@@ -249,10 +331,12 @@ void planWithSimpleSetup(const std::string &output_file, Eigen::VectorXd startVe
     Eigen::VectorXd goalVec(7);
 
     StationTask s1;
+    s1.name = "T0_S1";
     s1.goal << 1.0, 1.0, 1.5;
     stations.push_back(s1);
 
     StationTask s2;
+    s2.name = "T0_S3";
     s2.goal << 9.0, 9.0, 9.0;
     stations.push_back(s2);
 
@@ -260,6 +344,8 @@ void planWithSimpleSetup(const std::string &output_file, Eigen::VectorXd startVe
     Eigen::VectorXd init(7);
     Eigen::VectorXd curr(7);
     Eigen::VectorXd finalGoal(7);
+
+    // State state;
 
     init << -0.5, -0.5, 0.5, 1.0, 0.0, 0.0, 0.0;  // w, x, y, z
     finalGoal << 1.9, 1.9, -0.5, 1.0, 0.0, 0.0, 0.0;  // w, x, y, z
@@ -270,39 +356,65 @@ void planWithSimpleSetup(const std::string &output_file, Eigen::VectorXd startVe
     // Randomly select a station to start
     int firstIndex = now % stations.size();
 
-    while(serviced.size() != stations.size())
+    std::vector<std::string> stationStrings;
+    stationStrings.push_back("T0_S1");
+    stationStrings.push_back("T0_S3");
+
+    bool accept =false;
+
+    AutomatonState currentState = AutomatonState::T0_init;
+AutomatonState nextState;
+    TaskStates states;
+
+    planWithSimpleSetup(output_file, stateToGoal(currentState), stateToGoal(AutomatonState::T0_S1));
+    std::cout << "Planning from " << stateToGoal(currentState) << " to " << stateToGoal(AutomatonState::T0_S1) << std::endl;
+    states.s1 = 1;
+    currentState = AutomatonState::T0_S1;
+
+    // std::cout << "Next state: " << stateToString(getNextState(currentState, 1,0)) << std::endl;
+
+    while(currentState != AutomatonState::accept_all)
     {
-        std::time_t loopTime = std::time(nullptr);
-        firstIndex = (firstIndex + 1) % stations.size();
-        if(stations[firstIndex].serviced == 1)
-        {
-            continue;
-        }
-        std::cout << "Planning station " << firstIndex << std::endl;
-        goalVec[0] = stations[firstIndex].goal[0];
-        goalVec[1] = stations[firstIndex].goal[1];
-        goalVec[2] = stations[firstIndex].goal[2];
+        nextState = getNextState(currentState, states.s1, states.s2);
+        std::cout << "Next state: " << stateToString(nextState) << std::endl;
 
-        planWithSimpleSetup(output_file, curr, goalVec);
-        visited = visited + " -> " + std::to_string(firstIndex);
-        curr[0] = stations[firstIndex].goal[0];
-        curr[1] = stations[firstIndex].goal[1];
-        curr[2] = stations[firstIndex].goal[2];
-        if(loopTime % 3 != 1)
-        {
-            serviced.push_back(stations[firstIndex]);
-            stations[firstIndex].serviced = 1;
-            std::cout << "SERVICED " << firstIndex << std::endl;
-        } else {
-            std::cout << "DID NOT service " << firstIndex << std::endl;
-            std::cout << "Current location " << curr.transpose() << std::endl;
-        }
+        planWithSimpleSetup(output_file, stateToGoal(currentState), stateToGoal(nextState));
+        // map string to int
+        states.s2 = 1;
+        currentState = nextState;
     }
-    planWithSimpleSetup(output_file, curr, finalGoal);
+    // while(!accept)
+    // {
+    //     std::time_t loopTime = std::time(nullptr);
+    //     firstIndex = (firstIndex + 1) % stations.size();
+    //     if(stations[firstIndex].serviced == 1)
+    //     {
+    //         continue;
+    //     }
+    //     std::cout << "Planning station " << firstIndex << std::endl;
+    //     goalVec[0] = stations[firstIndex].goal[0];
+    //     goalVec[1] = stations[firstIndex].goal[1];
+    //     goalVec[2] = stations[firstIndex].goal[2];
 
-     std::cout << std::endl << std::endl;
-  
-    //  planWithSimpleSetup("SampleOut.txt", startVec, goalVec);
-  
-     return 0;
+    //     planWithSimpleSetup(output_file, curr, goalVec);
+    //     visited = visited + " -> " + std::to_string(firstIndex);
+    //     curr[0] = stations[firstIndex].goal[0];
+    //     curr[1] = stations[firstIndex].goal[1];
+    //     curr[2] = stations[firstIndex].goal[2];
+    //     if(loopTime % 3 != 1)
+    //     {
+    //         serviced.push_back(stations[firstIndex]);
+    //         stations[firstIndex].serviced = 1;
+            
+    //         std::cout << "SERVICED " << firstIndex << std::endl;
+    //     } else {
+    //         std::cout << "DID NOT service " << firstIndex << std::endl;
+    //         std::cout << "Current location " << curr.transpose() << std::endl;
+    //     }
+    //     if(state.s1 == 1 && state.s2 == 1) accept = true;
+    // }
+
+    std::cout << std::endl << std::endl;
+    
+    return 0;
  }
