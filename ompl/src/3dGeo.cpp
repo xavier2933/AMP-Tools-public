@@ -93,7 +93,10 @@ struct TaskStates {
 std::vector<SphereObstacle> obstacles = {
     {0.0, 0.0, 0.0, 0.2}, // Example obstacle at origin with radius 0.2
     {0.5, 0.5, 0.5, 0.1},  // Another obstacle
-    {1.0, 1.0, 0.0, 4.0}  // Another obstacle
+    {1.0, 1.0, 0.0, 5.0},  // Another obstacle
+    {5.0, 5.0, 6.0, 3.0},  // Another obstacle
+    {-5.0, -6.0, -4.0, 3.0}  // Another obstacle
+
 
 };
 
@@ -119,73 +122,6 @@ bool isStateValid(const ob::State *state)
 
     return true; // State is valid
 }
-
-  
- void plan3d()
- {
-     // construct the state space we are planning in
-     auto space(std::make_shared<ob::SE3StateSpace>());
-  
-     // set the bounds for the R^3 part of SE(3)
-     ob::RealVectorBounds bounds(3);
-     bounds.setLow(-2);
-     bounds.setHigh(2);
-  
-     space->setBounds(bounds);
-  
-     // construct an instance of  space information from this state space
-     auto si(std::make_shared<ob::SpaceInformation>(space));
-  
-     // set state validity checking for this space
-     si->setStateValidityChecker(isStateValid);
-  
-     // create a random start state
-     ob::ScopedState<> start(space);
-     start.random();
-  
-     // create a random goal state
-     ob::ScopedState<> goal(space);
-     goal.random();
-  
-     // create a problem instance
-     auto pdef(std::make_shared<ob::ProblemDefinition>(si));
-  
-     // set the start and goal states
-     pdef->setStartAndGoalStates(start, goal);
-  
-     // create a planner for the defined space
-     auto planner(std::make_shared<og::RRTConnect>(si));
-  
-     // set the problem we are trying to solve for the planner
-     planner->setProblemDefinition(pdef);
-  
-     // perform setup steps for the planner
-     planner->setup();
-  
-  
-     // print the settings for this space
-     si->printSettings(std::cout);
-  
-     // print the problem settings
-     pdef->print(std::cout);
-  
-     // attempt to solve the problem within one second of planning time
-     ob::PlannerStatus solved = planner->ob::Planner::solve(1.0);
-  
-     if (solved)
-     {
-         // get the goal representation from the problem definition (not the same as the goal state)
-         // and inquire about the found path
-         ob::PathPtr path = pdef->getSolutionPath();
-         std::cout << "Found solution:" << std::endl;
-  
-         // print the path to screen
-         path->print(std::cout);
-     }
-     else
-         std::cout << "No solution found" << std::endl;
- }
-
 
 // F(s1)&F(s2)&(shark->(~s2 U healthy))
 AutomatonState getNextState(AutomatonState currentState, bool s1, bool s2, bool shark, bool healthy) {
@@ -349,7 +285,7 @@ void planWithSimpleSetup(const std::string &output_file, Eigen::VectorXd startVe
     if (solved)
     {
         ss.simplifySolution();
-                 ss.getSolutionPath().print(std::cout);
+        ss.getSolutionPath().print(std::cout);
         const og::PathGeometric &path = ss.getSolutionPath();
 
         // Get state count and iterate through each state

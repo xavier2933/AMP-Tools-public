@@ -15,7 +15,10 @@ class SphereObstacle:
 obstacles = [
     SphereObstacle(0.0, 0.0, 0.0, 0.2),  # Example obstacle at origin with radius 0.2
     SphereObstacle(0.5, 0.5, 0.5, 0.1),   # Another obstacle
-    SphereObstacle(1.0, 1.0, 0.0, 1.0),  # Example obstacle at origin with radius 0.2
+    SphereObstacle(1.0, 1.0, 0.0, 5.0),  # Example obstacle at origin with radius 0.2
+    SphereObstacle(5.0, 5.0, 6.0, 3.0),  # Example obstacle at origin with radius 0.2
+    SphereObstacle(-5.0, -6.0, -4.0, 4.5),  # Example obstacle at origin with radius 0.2
+
 ]
 
 def parse_data(file_path):
@@ -101,7 +104,7 @@ def plot_3d_path_with_obstacles(segments, obstacles):
         ax.plot_surface(x, y, z, color='red', alpha=0.6)
 
     # Define colormap and normalize for the entire path
-    cmap = plt.cm.coolwarm  # Change to your preferred colormap
+    cmap = plt.cm.Blues  # Change to your preferred colormap
     norm = Normalize(vmin=0, vmax=100)  # You can adjust vmax to the total path length
 
     # Plot the path from SampleOut.txt
@@ -119,7 +122,7 @@ def plot_3d_path_with_obstacles(segments, obstacles):
             z = [segment[j-1, 2], segment[j, 2]]
             color = cmap(norm(distances[j]))  # Color based on the distance
             
-            ax.plot(x, y, z, color=color)
+            ax.plot(x, y, z, color=color, linewidth=4)  # Adjust the linewidth value as needed
         
         # Optionally scatter points for better visibility
         ax.scatter(segment[:, 0], segment[:, 1], segment[:, 2], c=distances, cmap=cmap, s=10)
