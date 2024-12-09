@@ -186,6 +186,8 @@ bool isStateValid(const ob::State *state)
          std::cout << "No solution found" << std::endl;
  }
 
+
+// F(s1)&F(s2)&(shark->(~s2 U healthy))
 AutomatonState getNextState(AutomatonState currentState, bool s1, bool s2, bool shark, bool healthy) {
     switch (currentState) {
         case AutomatonState::T0_init:
