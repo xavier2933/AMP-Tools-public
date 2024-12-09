@@ -54,9 +54,20 @@ namespace og = ompl::geometric;
 
 enum class AutomatonState {
     T0_init,
-    T0_S1,
+    T0_S2,
     T0_S3,
+    T0_S4,
+    T0_S5,
+    T0_S6,
     accept_all
+};
+
+enum class Locations {
+    init,
+    s1,
+    s2,
+    healthy,
+    goal
 };
 
 struct SphereObstacle {
@@ -75,12 +86,14 @@ struct TaskStates {
     public:
         int s1 = 0;
         int s2 = 0;
+        int shark = 0;
+        int healthy = 1;
 };
 
 std::vector<SphereObstacle> obstacles = {
     {0.0, 0.0, 0.0, 0.2}, // Example obstacle at origin with radius 0.2
     {0.5, 0.5, 0.5, 0.1},  // Another obstacle
-    {1.0, 1.0, 0.0, 1.0}  // Another obstacle
+    {1.0, 1.0, 0.0, 4.0}  // Another obstacle
 
 };
 
@@ -173,57 +186,109 @@ bool isStateValid(const ob::State *state)
          std::cout << "No solution found" << std::endl;
  }
 
-AutomatonState getNextState(AutomatonState currentState, bool s1, bool s2) {
+AutomatonState getNextState(AutomatonState currentState, bool s1, bool s2, bool shark, bool healthy) {
     switch (currentState) {
         case AutomatonState::T0_init:
-            if (s1 && s2) return AutomatonState::accept_all;
-            if (s1 && !s2) return AutomatonState::T0_S1;
-            if (!s1 && !s2) return AutomatonState::T0_init;
-            if (!s1 && s2) return AutomatonState::T0_S3;
+            if (((s1 && s2 && !shark) || (healthy && s1 && s2))) 
+                return AutomatonState::accept_all;
+            else if (((!s1 && s2 && !shark) || (healthy && !s1 && s2)))
+                return AutomatonState::T0_S2;
+            else if (((s1 && !s2 && !shark) || (healthy && s1 && !s2)))
+                return AutomatonState::T0_S3;
+            else if (((!s1 && !s2 && !shark) || (healthy && !s1 && !s2)))
+                return AutomatonState::T0_S4;
+            else if ((!healthy && s1 && !s2 && shark))
+                return AutomatonState::T0_S5;
+            else if ((!healthy && !s1 && !s2 && shark))
+                return AutomatonState::T0_S6;
             break;
 
-        case AutomatonState::T0_S1:
-            if (s2) return AutomatonState::accept_all;
-            if (!s2) return AutomatonState::T0_S1;
-            break;
+        case AutomatonState::T0_S2:
+            if (s1) 
+                return AutomatonState::accept_all;
+            else 
+                return AutomatonState::T0_S2;
 
         case AutomatonState::T0_S3:
-            if (s1) return AutomatonState::accept_all;
-            if (!s1) return AutomatonState::T0_S3;
-            break;
+            if (s2) 
+                return AutomatonState::accept_all;
+            else 
+                return AutomatonState::T0_S3;
+
+        case AutomatonState::T0_S4:
+            if (s1 && s2) 
+                return AutomatonState::accept_all;
+            else if (!s1 && s2) 
+                return AutomatonState::T0_S2;
+            else if (s1 && !s2) 
+                return AutomatonState::T0_S3;
+            else 
+                return AutomatonState::T0_S4;
+
+        case AutomatonState::T0_S5:
+            if (healthy && s2) 
+                return AutomatonState::accept_all;
+            else if (healthy && !s2) 
+                return AutomatonState::T0_S3;
+            else 
+                return AutomatonState::T0_S5;
+
+        case AutomatonState::T0_S6:
+            if (healthy && s1 && s2) 
+                return AutomatonState::accept_all;
+            else if (healthy && !s1 && s2) 
+                return AutomatonState::T0_S2;
+            else if (healthy && s1 && !s2) 
+                return AutomatonState::T0_S3;
+            else if (healthy && !s1 && !s2) 
+                return AutomatonState::T0_S4;
+            else if (!healthy && s1 && !s2) 
+                return AutomatonState::T0_S5;
+            else 
+                return AutomatonState::T0_S6;
 
         case AutomatonState::accept_all:
-            // Remain in accept state
-            return AutomatonState::accept_all;
+            return AutomatonState::accept_all; // Remain in the accept state.
+
+        default:
+            return currentState; // Stay in the same state by default.
     }
-    return currentState; // Default: remain in the same state
+
+    return currentState; // Safety return for unhandled cases.
 }
+
 
 std::string stateToString(AutomatonState state) {
     switch (state) {
         case AutomatonState::T0_init: return "T0_init";
-        case AutomatonState::T0_S1: return "T0_S1";
+        case AutomatonState::T0_S2: return "T0_S2";
         case AutomatonState::T0_S3: return "T0_S3";
+        case AutomatonState::T0_S4: return "T0_S4";
+        case AutomatonState::T0_S5: return "T0_S5";
+        case AutomatonState::T0_S6: return "T0_S6";
         case AutomatonState::accept_all: return "accept_all";
         default: return "Unknown State";
     }
 }
 
-Eigen::VectorXd stateToGoal(AutomatonState state)
+Eigen::VectorXd stateToGoal(Locations locations)
 {
     Eigen::VectorXd res(3); // Initialize a 3-element vector
-    switch (state) {
-        case AutomatonState::T0_init: 
+    switch (locations) {
+        case Locations::init: 
             res << 3.0, -5.0, 0.0;
             break;
-        case AutomatonState::T0_S1: 
+        case Locations::s1: 
             res << 9.0, 9.0, 9.0;
             break;
-        case AutomatonState::T0_S3: 
+        case Locations::s2: 
             res << -9.0, -9.0, -9.0;
             break;
-        case AutomatonState::accept_all: 
+        case Locations::healthy: 
             res << -9.0, 0.0, 0.0;
+            break;
+        case Locations::goal: 
+            res << 0.0, -9.0, 0.0;
             break;
         default:
             res.setZero(); // Default to a zero vector for safety
@@ -231,7 +296,6 @@ Eigen::VectorXd stateToGoal(AutomatonState state)
     }
     return res;
 }
-
 
 
 
@@ -328,30 +392,74 @@ int main(int /*argc*/, char ** /*argv*/)
     AutomatonState nextState;
     TaskStates states;
 
-    planWithSimpleSetup(output_file, stateToGoal(currentState), stateToGoal(AutomatonState::T0_S1));
-    states.s1 = 1;
-    currentState = AutomatonState::T0_S1;
+
+    Locations locations;
+
+    Eigen::VectorXd curr = stateToGoal(Locations::init);
+
+    if(now%3 == 4)
+    {
+        planWithSimpleSetup(output_file, stateToGoal(Locations::init), stateToGoal(Locations::s1));
+        states.s1 = 1;
+        curr = stateToGoal(Locations::s1);
+        
+    } else if (now%3 == 1) {
+        planWithSimpleSetup(output_file, stateToGoal(Locations::init), stateToGoal(Locations::s2));
+        curr = stateToGoal(Locations::s2);
+        states.s2 = 1;
+    } else {
+        states.healthy = 0;
+        states.shark = 1;
+        std::cout <<"SHARK ATTACK" << std::endl;
+    }
+
+    // std::cout << "Next state: " << stateToString(getNextState(AutomatonState::T0_init, states.s1,states.s2, states.shark, states.healthy)) << std::endl;
+    // std::cout << "Next state: " << stateToString(getNextState(AutomatonState::T0_S6, states.s1,states.s2, states.shark, !states.healthy)) << std::endl;
+    // std::cout << "Next state: " << stateToString(getNextState(AutomatonState::T0_S4, states.s1,!states.s2, states.shark, !states.healthy)) << std::endl;
+    // std::cout << "Next state: " << stateToString(getNextState(AutomatonState::T0_S2, !states.s1,!states.s2, states.shark, !states.healthy)) << std::endl;
+
 
     while(currentState != AutomatonState::accept_all)
     {
         now = std::time(nullptr);
-        nextState = getNextState(currentState, states.s1, states.s2);
-        std::cout << "Next state: " << stateToString(nextState) << std::endl;
-
-        if(nextState != currentState)
-        {
-            planWithSimpleSetup(output_file, stateToGoal(currentState), stateToGoal(nextState));
-        }
-        // map string to int
         if(now%3 == 1) 
         {
-            states.s2 = 1;
-            std::cout << "state 2 success " << std::endl;
-        } else {
-            std::cout << "RETRYING" << std::endl;
+            states.healthy = 0;
+            states.shark = 1;
+            std::cout <<"SHARK ATTACK" << std::endl;
         }
+        nextState = getNextState(currentState, states.s1,states.s2, states.shark, states.healthy);
+        std::cout << "Next state: " << stateToString(nextState) << std::endl;
+
+        if(!states.healthy)
+        {
+            planWithSimpleSetup(output_file, curr, stateToGoal(Locations::healthy));
+            curr = stateToGoal(Locations::healthy);
+            states.healthy = 1;
+            continue;
+        }
+
+        if(!states.s2)
+        {
+            planWithSimpleSetup(output_file, curr, stateToGoal(Locations::s2));
+            curr = stateToGoal(Locations::s2);
+            states.s2 = 1;
+            continue; 
+        }
+
+        if(!states.s1)
+        {
+            planWithSimpleSetup(output_file, curr, stateToGoal(Locations::s1));
+            curr = stateToGoal(Locations::s1);
+            states.s1 = 1;
+            continue; 
+        }
+
         currentState = nextState;
     }
+
+    planWithSimpleSetup(output_file, curr, stateToGoal(Locations::goal));
+
 
     std::cout << std::endl << std::endl;
 
