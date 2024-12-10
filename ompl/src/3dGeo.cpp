@@ -335,7 +335,7 @@ int main(int /*argc*/, char ** /*argv*/)
 
     Eigen::VectorXd curr = stateToGoal(Locations::init);
 
-    if(now%3 == 4)
+    if(now%3 == 0)
     {
         planWithSimpleSetup(output_file, stateToGoal(Locations::init), stateToGoal(Locations::s1));
         states.s1 = 1;
@@ -356,24 +356,27 @@ int main(int /*argc*/, char ** /*argv*/)
     // std::cout << "Next state: " << stateToString(getNextState(AutomatonState::T0_S4, states.s1,!states.s2, states.shark, !states.healthy)) << std::endl;
     // std::cout << "Next state: " << stateToString(getNextState(AutomatonState::T0_S2, !states.s1,!states.s2, states.shark, !states.healthy)) << std::endl;
 
-
+    std::string stateString = "init -> ";
     while(currentState != AutomatonState::accept_all)
     {
         now = std::time(nullptr);
-        if(now%3 == 1) 
+        if(now%10 == 1) 
         {
             states.healthy = 0;
             states.shark = 1;
             std::cout <<"SHARK ATTACK" << std::endl;
+            stateString += "SHARK ATTACK -> ";
         }
         nextState = getNextState(currentState, states.s1,states.s2, states.shark, states.healthy);
         std::cout << "Next state: " << stateToString(nextState) << std::endl;
+        stateString += stateToString(nextState) + " -> ";
 
         if(!states.healthy)
         {
             planWithSimpleSetup(output_file, curr, stateToGoal(Locations::healthy));
             curr = stateToGoal(Locations::healthy);
             states.healthy = 1;
+            states.shark = 0;
             continue;
         }
 
@@ -401,5 +404,6 @@ int main(int /*argc*/, char ** /*argv*/)
 
     std::cout << std::endl << std::endl;
 
+    std::cout << stateString << std::endl;
     return 0;
 }
