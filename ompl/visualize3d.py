@@ -130,6 +130,8 @@ def plot_3d_path_with_obstacles(segments, obstacles):
         (3.0, -5, 0.0),
         (9.0, 9.0, 9.0),
         (-9.0, -9.0, -9.0),
+                (-9.0, 9.0, -8.0),
+
         (-9.0, 0.0, 0.0),
         (0.0, -9.0, 0.0),
     ]
@@ -138,6 +140,7 @@ def plot_3d_path_with_obstacles(segments, obstacles):
         "Start",
         "Station 1",
         "Station 2",
+        "Station 3",
         "Hospital",
         "Goal",
     ]
@@ -148,11 +151,17 @@ def plot_3d_path_with_obstacles(segments, obstacles):
         'orange',
         'purple',
         'brown',
+        'red',
     ]
 
     # Scatter points of interest with unique labels and colors
     for i, (x, y, z) in enumerate(pois):
-        ax.scatter(x, y, z, color=poi_colors[i], s=50, marker='x', label=poi_labels[i])
+        if i == 0 or i == 5:
+            ax.scatter(x, y, z, color=poi_colors[i], s=50, marker='o', label=poi_labels[i])
+        elif i == 4:
+            ax.scatter(x, y, z, color=poi_colors[i], s=100, marker='*', label=poi_labels[i])
+        else:
+            ax.scatter(x, y, z, color=poi_colors[i], s=100, marker='x', label=poi_labels[i])
 
     # Set labels and title
     ax.set_xlabel("X")
