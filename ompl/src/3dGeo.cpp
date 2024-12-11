@@ -134,72 +134,66 @@ bool isStateValid(const ob::State *state)
 AutomatonState getNextState(AutomatonState currentState, bool s1, bool s2, bool s3, bool healthy) {
     switch (currentState) {
         case AutomatonState::State0:
-            // State 0 loops on itself for all inputs.
-            return AutomatonState::State0;
+            if (s1 && s2 && s3 && healthy) return AutomatonState::State1;   // [0&1&2&3] 1
+            if (s1 && !s2 && !s3) return AutomatonState::State2;           // [0&!1&!2] 2
+            if (!s1 && s2 && !s3 && healthy) return AutomatonState::State3; // [!0&1&!2&3] 3
+            if (!s1 && !s2 && s3) return AutomatonState::State4;           // [!0&!1&2] 4
+            if (!s1 && s2 && s3 && healthy) return AutomatonState::State5; // [!0&1&2&3] 5
+            if (s1 && !s2 && s3) return AutomatonState::State6;            // [0&!1&2] 6
+            if (s1 && s2 && !s3 && healthy) return AutomatonState::State7; // [0&1&!2&3] 7
+            return AutomatonState::State0;                                 // [!0&!1&!2] 0
 
         case AutomatonState::State1:
-            if (s2) return AutomatonState::State0; // [!2] 1
-            else return AutomatonState::State1;   // [2] 0
+            if (!s2 && !healthy) return AutomatonState::State1;            // [!1&!3] 1
+            if (healthy) return AutomatonState::State1;                    // [3] 1 {0}
+            return AutomatonState::State1;
 
         case AutomatonState::State2:
-            if (s1) return AutomatonState::State0; // [1] 0
-            else return AutomatonState::State2;   // [!1] 2
+            if (s1 && s2 && s3) return AutomatonState::State1;             // [1&2&3] 1
+            if (!s1 && !s2) return AutomatonState::State2;                 // [!1&!2] 2
+            if (!s1 && s2) return AutomatonState::State6;                  // [!1&2] 6
+            if (s1 && !s2 && s3) return AutomatonState::State7;            // [1&!2&3] 7
+            return AutomatonState::State2;
 
         case AutomatonState::State3:
-            if (s1 && s2) return AutomatonState::State0;  // [1&3] 0
-            else if (s1 && !s2) return AutomatonState::State2;  // [!1&3] 2
-            else if (!s1 && s2) return AutomatonState::State3;  // [!1&!3] 3
-            else return AutomatonState::State3; // Default transition for State 3
+            if ((s1 && !s2 && s3) || (s1 && s2 && s3)) return AutomatonState::State1; // [0&!1&2 | 0&2&3] 1
+            if ((!s1 && !s2) || (!s1 && s3)) return AutomatonState::State3;          // [!0&!1&!2 | !0&!2&3] 3
+            if ((!s1 && s2) || (!s1 && s3)) return AutomatonState::State5;           // [!0&!1&2 | !0&2&3] 5
+            if ((s1 && !s2) || (s1 && s3)) return AutomatonState::State7;            // [0&!1&!2 | 0&!2&3] 7
+            return AutomatonState::State3;
 
         case AutomatonState::State4:
-            if (s1 && s2) return AutomatonState::State0; // [0&1&3] 0
-            else if (!s1 && s2) return AutomatonState::State2; // [0&!1&3] 2
-            else return AutomatonState::State4;  // [!0&!1&!3] 4
+            if (s1 && s3 && healthy) return AutomatonState::State1;         // [0&1&3] 1
+            if (!s1 && !healthy) return AutomatonState::State4;            // [!0&!1] 4
+            if (!s1 && s3 && healthy) return AutomatonState::State5;       // [!0&1&3] 5
+            if (s1 && !healthy) return AutomatonState::State6;             // [0&!1] 6
+            return AutomatonState::State4;
 
         case AutomatonState::State5:
-            if (s1 && s2) return AutomatonState::State0; // [1&2&3] 0
-            else if (s1 && !s2) return AutomatonState::State1; // [1&!2&3] 1
-            else if (!s1 && s2) return AutomatonState::State4; // [!1&2&3] 2
-            else if (!s1 && !s2) return AutomatonState::State5; // [!1&!2&!3] 5
+            if ((s1 && !s2) || (s1 && healthy)) return AutomatonState::State1;  // [0&!1 | 0&3] 1
+            if ((!s1 && !s2) || (!s1 && healthy)) return AutomatonState::State5; // [!0&!1 | !0&3] 5
+            return AutomatonState::State5;
 
         case AutomatonState::State6:
-            // The new state involving s3 and healthy.
-            if (s1 && s2 && s3) return AutomatonState::State0; // [0&1&2&3] 0
-            else if (!s1 && !s2 && !healthy) return AutomatonState::State1; // [!0&!1&!2&!healthy] 1
-            else if (healthy && !s2) return AutomatonState::State6; // Ensure s2 is false until healthy
-            else return AutomatonState::State6; // Stay in the state
+            if (s1 && s3) return AutomatonState::State1;                    // [1&3] 1
+            if (!s1) return AutomatonState::State6;                         // [!1] 6
+            return AutomatonState::State6;
 
         case AutomatonState::State7:
-            return s1 ? AutomatonState::State0 : AutomatonState::State7; // [0] 0
-
-        case AutomatonState::State8:
-            if (s1 && s2) return AutomatonState::State0; // [1&2] 0
-            else if (s1 && !s2) return AutomatonState::State1; // [1&!2] 1
-            else return AutomatonState::State8; // [!1&!2] 8
-
-        case AutomatonState::State9:
-            if (s1 && s2) return AutomatonState::State0; // [0&1&2] 0
-            else return AutomatonState::State9; // Default
-
-        case AutomatonState::State10:
-            if (s1 && s3) return AutomatonState::State0; // [0&1] 0
-            else return AutomatonState::State10; // Default
-
-        case AutomatonState::State11:
-            if (s1 && healthy) return AutomatonState::State0; // [0&2] 0
-            else return AutomatonState::State11; // Stay in state if no valid transition
+            if ((!s1 && s2) || (s2 && healthy)) return AutomatonState::State1; // [!1&2 | 2&3] 1
+            if ((!s1 && !s2) || (!s2 && healthy)) return AutomatonState::State7; // [!1&!2 | !2&3] 7
+            return AutomatonState::State7;
 
         default:
-            return currentState; // Default case: stay in the same state.
+            return currentState; // Stay in the same state by default
     }
 }
 
 
-
 std::string stateToString(AutomatonState state) {
     switch (state) {
-        case AutomatonState::State0: return "State0 (Accepting)";
-        case AutomatonState::State1: return "State1";
+        case AutomatonState::State0: return "State0";
+        case AutomatonState::State1: return "State1 (Accepting)";
         case AutomatonState::State2: return "State2";
         case AutomatonState::State3: return "State3";
         case AutomatonState::State4: return "State4";
@@ -334,7 +328,7 @@ int main(int /*argc*/, char ** /*argv*/) {
 
     std::time_t now = std::time(nullptr);
 
-    AutomatonState currentState = AutomatonState::State6; // Updated to start at State3.
+    AutomatonState currentState = AutomatonState::State0; // Updated to start at State3.
     AutomatonState nextState;
     TaskStates states;
 
@@ -343,59 +337,106 @@ int main(int /*argc*/, char ** /*argv*/) {
     int it = 0;
     Eigen::VectorXd curr = stateToGoal(Locations::init);
 
+    if(now % 4 == 0)
+    {
+        planWithSimpleSetup(output_file, curr, stateToGoal(Locations::s2));
+        curr = stateToGoal(Locations::s2);
+        if(it%3 != 1) states.s2 = 1;
+        std::cout << "VISITED S2" << std::endl;
+        nextState = getNextState(currentState, states.s1, states.s2, states.s3, states.healthy);
+    } else if(now%4 == 1) {
+        planWithSimpleSetup(output_file, curr, stateToGoal(Locations::s2));
+        curr = stateToGoal(Locations::s3);
+        if(it%3 != 1) states.s3 = 1;
+        std::cout << "VISITED S3" << std::endl;
+        nextState = getNextState(currentState, states.s1, states.s2, states.s3, states.healthy);
+
+    } else if(now%4 == 2) {
+        planWithSimpleSetup(output_file, curr, stateToGoal(Locations::s1));
+        curr = stateToGoal(Locations::s1);
+        if(it%3!= 1) states.s1 = 1;
+        std::cout << "VISITED S1" << std::endl;
+        nextState = getNextState(currentState, states.s1, states.s2, states.s3, states.healthy);
+
+    } else {
+        states.healthy = 0;
+        attacks++;
+        states.shark = 1;
+        nextState = getNextState(currentState, states.s1, states.s2, states.s3, states.healthy);
+
+    }
+
+    std::cout << "Current state: " << stateToString(currentState)
+                  << " -> Next state: " << stateToString(nextState) << std::endl;
+
     std::string visited = "init -> ";
-    while (currentState != AutomatonState::State0) { // Run until acceptance condition is met.
+    while (currentState != AutomatonState::State1) { // Run until acceptance condition is met.
         now = std::time(nullptr);
         it++;
-        if (now % 3 == 1 && attacks < 2) {
+            std::cout << "s1: " << states.s1 << ", "
+              << "s2: " << states.s2 << ", "
+              << "s3: " << states.s3 << ", "
+              << "healthy: " << states.healthy << std::endl;
+        if (now % 2 == 1 && attacks < 2) {
             states.healthy = 0;
             attacks++;
             states.shark = 1;
             std::cout << "SHARK ATTACK" << std::endl;
         }
 
-        nextState = getNextState(currentState, states.s1, states.s2, states.s3, states.healthy);
-        std::cout << "Current state: " << stateToString(currentState)
-                  << " -> Next state: " << stateToString(nextState) << std::endl;
-        
+        // nextState = getNextState(currentState, states.s1, states.s2, states.s3, states.healthy);
+        // std::cout << "Current state: " << stateToString(currentState)
+        //           << " -> Next state: " << stateToString(nextState) << std::endl;
+        currentState = nextState;
+
         if (!states.healthy) {
             planWithSimpleSetup(output_file, curr, stateToGoal(Locations::healthy));
             curr = stateToGoal(Locations::healthy);
             states.healthy = 1;
-                    currentState = nextState;
-            
+            nextState = getNextState(currentState, states.s1, states.s2, states.s3, states.healthy);
+            std::cout << "Current state: " << stateToString(nextState) << std::endl;
 
             continue;
         }
 
-        if(!states.s1 && !states.s2)
+        if(!states.s1 && !states.s2 && !states.s3)
         {
-            if(now%2 == 1)
+            if(now%3 == 0)
             {
                 planWithSimpleSetup(output_file, curr, stateToGoal(Locations::s2));
                 curr = stateToGoal(Locations::s2);
                 if(it%3 != 1) states.s2 = 1;
-                currentState = nextState;
-                std::cout << "VISITED S2" << std::endl;
+                nextState = getNextState(currentState, states.s1, states.s2, states.s3, states.healthy);
+                std::cout << "VISITED S2 with state: " << std::endl;
+                std::cout << "Current state: " << stateToString(nextState) << std::endl;
+            } else if(now%3 == 1) {
+                planWithSimpleSetup(output_file, curr, stateToGoal(Locations::s2));
+                curr = stateToGoal(Locations::s3);
+                if(it%3 != 1) states.s3 = 1;
+                nextState = getNextState(currentState, states.s1, states.s2, states.s3, states.healthy);
+                std::cout << "VISITED S3" << std::endl;
+                                std::cout << "Current state: " << stateToString(nextState) << std::endl;
+
             } else {
                 planWithSimpleSetup(output_file, curr, stateToGoal(Locations::s1));
                 curr = stateToGoal(Locations::s1);
                 if(it%3!= 1) states.s1 = 1;
-                                                    std::cout << "VISITED S1" << std::endl;
+                std::cout << "VISITED S1" << std::endl;
+                nextState = getNextState(currentState, states.s1, states.s2, states.s3, states.healthy);
+                                std::cout << "Current state: " << stateToString(nextState) << std::endl;
 
-                currentState = nextState;
             }
-                            continue;
-
+            continue;
         }
 
         if (!states.s2) {
             planWithSimpleSetup(output_file, curr, stateToGoal(Locations::s2));
             curr = stateToGoal(Locations::s2);
             states.s2 = 1;
-                    currentState = nextState;
+        nextState = getNextState(currentState, states.s1, states.s2, states.s3, states.healthy);
                                     std::cout << "VISITED S2" << std::endl;
 
+                                std::cout << "Current state: " << stateToString(nextState) << std::endl;
 
             continue;
         }
@@ -404,9 +445,10 @@ int main(int /*argc*/, char ** /*argv*/) {
             planWithSimpleSetup(output_file, curr, stateToGoal(Locations::s1));
             curr = stateToGoal(Locations::s1);
             states.s1 = 1;
-                    currentState = nextState;
+        nextState = getNextState(currentState, states.s1, states.s2, states.s3, states.healthy);
                                     std::cout << "VISITED S1" << std::endl;
 
+                                std::cout << "Current state: " << stateToString(nextState) << std::endl;
 
             continue;
         }
@@ -415,9 +457,10 @@ int main(int /*argc*/, char ** /*argv*/) {
             planWithSimpleSetup(output_file, curr, stateToGoal(Locations::s1));
             curr = stateToGoal(Locations::s3);
             states.s3 = 1;
-                    currentState = nextState;
+        nextState = getNextState(currentState, states.s1, states.s2, states.s3, states.healthy);
                                     std::cout << "VISITED S3" << std::endl;
 
+                                std::cout << "Current state: " << stateToString(nextState) << std::endl;
 
             continue;
         }

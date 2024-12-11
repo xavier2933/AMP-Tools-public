@@ -63,6 +63,7 @@ struct StationTask {
     public:
         int taskComplete = 0;
         int serviced = 0;
+        int index;
         Eigen::VectorXd goal = Eigen::VectorXd(3);
 };
 
@@ -233,9 +234,43 @@ void planWithSimpleSetup2(const std::string &output_file, Eigen::VectorXd startV
     out_file.close();
 }
 
-  
- int main(int /*argc*/, char ** /*argv*/)
- {
+int getNearest(std::vector<StationTask> stations, Eigen::VectorXd curr)
+{
+    double minDist = std::numeric_limits<double>::max();
+    int index = -1;
+
+    Eigen::VectorXd currNew(3);
+    if (curr.size() >= 3) {
+        currNew << curr[0], curr[1], curr[2];
+    } else {
+        std::cerr << "Error: curr must have at least 3 elements!" << std::endl;
+        return index;
+    }
+
+    for (int i = 0; i < stations.size(); i++)
+    {
+        if (stations[i].goal.size() != currNew.size()) {
+            std::cerr << "Skipping station " << i 
+                      << " due to size mismatch: goal size is " 
+                      << stations[i].goal.size() << std::endl;
+            continue;
+        }
+
+        if ((currNew - stations[i].goal).norm() < minDist &&
+            stations[i].serviced != 1 && 
+            !currNew.isApprox(stations[i].goal))
+        {
+            index = i;
+            minDist = (currNew - stations[i].goal).norm();
+        }
+    }
+    return index;
+}
+
+
+
+int main(int /*argc*/, char ** /*argv*/)
+{
     std::string output_file = "SampleOut.txt";
     if (std::remove(output_file.c_str()) == 0) {
         std::cout << "Deleted existing file: " << output_file << std::endl;
@@ -253,14 +288,17 @@ void planWithSimpleSetup2(const std::string &output_file, Eigen::VectorXd startV
 
     StationTask s1;
     s1.goal << 9.0, 9.0, 9.0;
+    s1.index = 0;
     stations.push_back(s1);
 
     StationTask s2;
     s2.goal << -9.0, -9.0, -9.0;
+    s2.index = 1;
     stations.push_back(s2);
 
     StationTask s3;
     s3.goal << -9.0, 9.0, -8.0;
+    s3.index = 2;
     stations.push_back(s3);
 
     std::string visited = "init ";
@@ -274,13 +312,15 @@ void planWithSimpleSetup2(const std::string &output_file, Eigen::VectorXd startV
 
     curr = init;
 
+    std::cout << "Closest is " << getNearest(stations, curr) << std::endl;
+
     // Randomly select a station to start
     int firstIndex = now % stations.size();
 
     while(serviced.size() != stations.size())
     {
         std::time_t loopTime = std::time(nullptr);
-        firstIndex = (firstIndex + 1) % stations.size();
+        firstIndex = getNearest(stations, curr);
         if(stations[firstIndex].serviced == 1)
         {
             continue;
@@ -307,9 +347,9 @@ void planWithSimpleSetup2(const std::string &output_file, Eigen::VectorXd startV
     }
     planWithSimpleSetup2(output_file, curr, finalGoal);
 
-     std::cout << std::endl << std::endl;
-  
+        std::cout << std::endl << std::endl;
+
     //  planWithSimpleSetup2("SampleOut.txt", startVec, goalVec);
-  
-     return 0;
- }
+
+    return 0;
+}
