@@ -17,7 +17,7 @@ obstacles = [
     SphereObstacle(0.5, 0.5, 0.5, 0.1),   # Another obstacle
     SphereObstacle(1.0, 1.0, 0.0, 5.0),  # Example obstacle at origin with radius 0.2
     SphereObstacle(5.0, 5.0, 6.0, 3.0),  # Example obstacle at origin with radius 0.2
-    SphereObstacle(-5.0, -6.0, -4.0, 4.5),  # Example obstacle at origin with radius 0.2
+    SphereObstacle(-5.0, -6.0, -4.0, 3.0),  # Example obstacle at origin with radius 0.2
 
 ]
 
@@ -97,15 +97,15 @@ def plot_3d_path_with_obstacles(segments, obstacles):
 
     # Plot the obstacles as spheres
     for obstacle in obstacles:
-        u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:10j]
+        u, v = np.mgrid[0:2 * np.pi:20j, 0:np.pi:10j]
         x = obstacle.radius * np.cos(u) * np.sin(v) + obstacle.x
         y = obstacle.radius * np.sin(u) * np.sin(v) + obstacle.y
         z = obstacle.radius * np.cos(v) + obstacle.z
         ax.plot_surface(x, y, z, color='red', alpha=0.6)
 
     # Define colormap and normalize for the entire path
-    cmap = plt.cm.Blues  # Change to your preferred colormap
-    norm = Normalize(vmin=0, vmax=100)  # You can adjust vmax to the total path length
+    cmap = plt.cm.viridis
+    norm = Normalize(vmin=0, vmax=100)
 
     # Plot the path from SampleOut.txt
     for i, segment in enumerate(segments):
@@ -117,29 +117,42 @@ def plot_3d_path_with_obstacles(segments, obstacles):
         
         # Plot each segment with a color gradient
         for j in range(1, len(segment)):
-            x = [segment[j-1, 0], segment[j, 0]]
-            y = [segment[j-1, 1], segment[j, 1]]
-            z = [segment[j-1, 2], segment[j, 2]]
-            color = cmap(norm(distances[j]))  # Color based on the distance
-            
-            ax.plot(x, y, z, color=color, linewidth=4)  # Adjust the linewidth value as needed
-        
-        # Optionally scatter points for better visibility
+            x = [segment[j - 1, 0], segment[j, 0]]
+            y = [segment[j - 1, 1], segment[j, 1]]
+            z = [segment[j - 1, 2], segment[j, 2]]
+            color = cmap(norm(distances[j]))
+            ax.plot(x, y, z, color=color, linewidth=4)
+
         ax.scatter(segment[:, 0], segment[:, 1], segment[:, 2], c=distances, cmap=cmap, s=10)
 
     # Define points of interest (POIs) here as a list of coordinates (x, y, z)
     pois = [
-        (3.0, -5, 0.0),  # Example POI 1
-        (9.0, 9.0, 9.0),  # Example POI 2
-        (-9.0, -9.0, -9.0),  # Example POI 3
-        (-9.0, 0.0, 0.0),  # Example POI 3
-        (0.0, -9.0, 0.0),  # Example POI 3
-
+        (3.0, -5, 0.0),
+        (9.0, 9.0, 9.0),
+        (-9.0, -9.0, -9.0),
+        (-9.0, 0.0, 0.0),
+        (0.0, -9.0, 0.0),
     ]
 
-    # Scatter points of interest
-    pois_array = np.array(pois)
-    ax.scatter(pois_array[:, 0], pois_array[:, 1], pois_array[:, 2], color='red', label='POI', s=50, marker='x')
+    poi_labels = [
+        "Start",
+        "Station 1",
+        "Station 2",
+        "Hospital",
+        "Goal",
+    ]
+
+    poi_colors = [
+        'blue',
+        'green',
+        'orange',
+        'purple',
+        'brown',
+    ]
+
+    # Scatter points of interest with unique labels and colors
+    for i, (x, y, z) in enumerate(pois):
+        ax.scatter(x, y, z, color=poi_colors[i], s=50, marker='x', label=poi_labels[i])
 
     # Set labels and title
     ax.set_xlabel("X")
@@ -156,9 +169,12 @@ def plot_3d_path_with_obstacles(segments, obstacles):
     plt.colorbar(sm, ax=ax, label="Path Distance")
 
     # Add legend for points of interest
-    ax.legend()
+    handles, labels = ax.get_legend_handles_labels()
+    unique_labels = dict(zip(labels, handles))
+    ax.legend(unique_labels.values(), unique_labels.keys(), loc='upper right')
 
     plt.show()
+
 
 if __name__ == "__main__":
     # Replace with the path to your data file
