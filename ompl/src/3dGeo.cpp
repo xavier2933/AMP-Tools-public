@@ -292,7 +292,7 @@ double planWithSimpleSetup(const std::string &output_file, Eigen::VectorXd start
     if (solved)
     {
         ss.simplifySolution();
-        // ss.getSolutionPath().print(std::cout);
+        ss.getSolutionPath().print(std::cout);
         const og::PathGeometric &path = ss.getSolutionPath();
         len = path.length();
         // Get state count and iterate through each state
@@ -401,7 +401,6 @@ double doEverything()
             states.healthy = 1;
             nextState = getNextState(currentState, states.s1, states.s2, states.s3, states.healthy);
             std::cout << "Current state: " << stateToString(nextState) << std::endl;
-
             continue;
         }
 
@@ -421,16 +420,14 @@ double doEverything()
                 if(it%3 != 1) states.s3 = 1;
                 nextState = getNextState(currentState, states.s1, states.s2, states.s3, states.healthy);
                 std::cout << "VISITED S3" << std::endl;
-                                std::cout << "Current state: " << stateToString(nextState) << std::endl;
-
+                std::cout << "Current state: " << stateToString(nextState) << std::endl;
             } else {
                 len += planWithSimpleSetup(output_file, curr, stateToGoal(Locations::s1));
                 curr = stateToGoal(Locations::s1);
                 if(it%3!= 1) states.s1 = 1;
                 std::cout << "VISITED S1" << std::endl;
                 nextState = getNextState(currentState, states.s1, states.s2, states.s3, states.healthy);
-                                std::cout << "Current state: " << stateToString(nextState) << std::endl;
-
+                std::cout << "Current state: " << stateToString(nextState) << std::endl;
             }
             continue;
         }
@@ -439,11 +436,9 @@ double doEverything()
             len += planWithSimpleSetup(output_file, curr, stateToGoal(Locations::s2));
             curr = stateToGoal(Locations::s2);
             states.s2 = 1;
-        nextState = getNextState(currentState, states.s1, states.s2, states.s3, states.healthy);
-                                    std::cout << "VISITED S2" << std::endl;
-
-                                std::cout << "Current state: " << stateToString(nextState) << std::endl;
-
+            nextState = getNextState(currentState, states.s1, states.s2, states.s3, states.healthy);
+            std::cout << "VISITED S2" << std::endl;
+            std::cout << "Current state: " << stateToString(nextState) << std::endl;
             continue;
         }
 
@@ -451,11 +446,9 @@ double doEverything()
             len += planWithSimpleSetup(output_file, curr, stateToGoal(Locations::s1));
             curr = stateToGoal(Locations::s1);
             states.s1 = 1;
-        nextState = getNextState(currentState, states.s1, states.s2, states.s3, states.healthy);
-                                    std::cout << "VISITED S1" << std::endl;
-
-                                std::cout << "Current state: " << stateToString(nextState) << std::endl;
-
+            nextState = getNextState(currentState, states.s1, states.s2, states.s3, states.healthy);
+            std::cout << "VISITED S1" << std::endl;
+            std::cout << "Current state: " << stateToString(nextState) << std::endl;
             continue;
         }
 
@@ -463,10 +456,10 @@ double doEverything()
             len += planWithSimpleSetup(output_file, curr, stateToGoal(Locations::s1));
             curr = stateToGoal(Locations::s3);
             states.s3 = 1;
-        nextState = getNextState(currentState, states.s1, states.s2, states.s3, states.healthy);
-                                    std::cout << "VISITED S3" << std::endl;
+            nextState = getNextState(currentState, states.s1, states.s2, states.s3, states.healthy);
+            std::cout << "VISITED S3" << std::endl;
 
-                                std::cout << "Current state: " << stateToString(nextState) << std::endl;
+            std::cout << "Current state: " << stateToString(nextState) << std::endl;
 
             continue;
         }
@@ -480,12 +473,33 @@ double doEverything()
 int main(int /*argc*/, char ** /*argv*/) {
     std::vector<double> lens;
     double len = 0.0;
-    for(int i = 0; i < 100; i++)
+    double localLen = 0.0;
+    double avg = 0.0;
+    len = doEverything();
+    for(int j = 0; j < 10; j++)
     {
-        len += doEverything();
-        lens.push_back(len);
+        len = 0;
+        for(int i = 0; i < 100; i++)
+        {
+            localLen = doEverything();
+            len += localLen;
+            lens.push_back(localLen);
+        }
+        avg += len/100.0;
     }
-    std::cout << "len " << len/100.0 << std::endl;
+
+    std::ofstream outFile("lens.csv");
+    if (outFile.is_open()) {
+        outFile << "Index,Value\n"; // Optional: Header row for CSV
+        for (size_t i = 0; i < lens.size(); i++) {
+            outFile << i << "," << lens[i] << "\n";
+        }
+        outFile.close();
+        std::cout << "Data written to lens.csv successfully." << std::endl;
+    } else {
+        std::cerr << "Failed to open file for writing." << std::endl;
+    }
+    std::cout << "len " << avg/10.0 << std::endl;
     return 0;
 }
 

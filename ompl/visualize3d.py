@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
+import matplotlib.animation as animation
 
 class SphereObstacle:
     def __init__(self, x, y, z, radius):
@@ -219,6 +220,7 @@ def plot_3d_path_with_obstacles(segments, obstacles, view_azimuth=225, view_elev
 
     plt.show()
 
+
 if __name__ == "__main__":
     # Replace with the path to your data file
     file_path = "SampleOut.txt"
@@ -229,4 +231,4 @@ if __name__ == "__main__":
         segments = parse_data(file_path)
         plot_3d_path_with_obstacles(segments, obstacles)
         # plot_3d_path_with_obstacles(segments, obstacles, 225, 90)
-
+        # animate_3d_path_with_obstacles(segments, obstacles, file_name="3d_path_animation.mp4", duration=15, fps=30)        

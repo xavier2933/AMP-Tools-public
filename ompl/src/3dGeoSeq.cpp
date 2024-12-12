@@ -323,6 +323,11 @@ double doEverythingSeq()
     {
         std::time_t loopTime = std::time(nullptr);
         firstIndex = getNearest(stations, curr);
+        if(firstIndex == -1)
+        {
+            std::cout << "going to goal" << std::endl;
+            break;
+        }
         if(stations[firstIndex].serviced == 1)
         {
             continue;
@@ -357,11 +362,32 @@ int main(int /*argc*/, char ** /*argv*/)
 {
     std::vector<double> lens;
     double len = 0.0;
-    for(int i = 0; i < 100; i++)
+    double localLen = 0.0;
+    double avg = 0.0;
+    len = doEverythingSeq();
+    for(int j = 0; j < 10; j++)
     {
-        len += doEverythingSeq();
-        lens.push_back(len);
+        len = 0;
+        for(int i = 0; i < 100; i++)
+        {
+            localLen = doEverythingSeq();
+            len+=localLen;
+            lens.push_back(localLen);
+        }
+        avg += len/100.0;
     }
-    std::cout << "len " << len/100.0 << std::endl;
+
+    std::ofstream outFile("lensSeq.csv");
+    if (outFile.is_open()) {
+        outFile << "Index,Value\n"; // Optional: Header row for CSV
+        for (size_t i = 0; i < lens.size(); i++) {
+            outFile << i << "," << lens[i] << "\n";
+        }
+        outFile.close();
+        std::cout << "Data written to lens.csv successfully." << std::endl;
+    } else {
+        std::cerr << "Failed to open file for writing." << std::endl;
+    }
+    std::cout << "len " << avg/10.0 << std::endl;
     return 0;
 }
