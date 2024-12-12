@@ -167,13 +167,13 @@ bool isStateValid(const ob::State *state)
  }
 
 
-void planWithSimpleSetup2(const std::string &output_file, Eigen::VectorXd startVec, Eigen::VectorXd goalVec)
+double planWithSimpleSetup2(const std::string &output_file, Eigen::VectorXd startVec, Eigen::VectorXd goalVec)
 {
 
     std::ofstream out_file(output_file, std::ios::app);
     if (!out_file.is_open()) {
         std::cerr << "Failed to open output file: " << output_file << std::endl;
-        return;
+        return 0.0;
     }
 
     auto space(std::make_shared<ob::SE3StateSpace>());
@@ -201,12 +201,13 @@ void planWithSimpleSetup2(const std::string &output_file, Eigen::VectorXd startV
     ss.setup();
 
     ob::PlannerStatus solved = ss.solve(1.0);
-
+    double len = 0.0;
     if (solved)
     {
         ss.simplifySolution();
-                 ss.getSolutionPath().print(std::cout);
+        ss.getSolutionPath().print(std::cout);
         const og::PathGeometric &path = ss.getSolutionPath();
+        len = path.length();
 
         // Get state count and iterate through each state
         size_t num_states = path.getStateCount();
@@ -230,8 +231,9 @@ void planWithSimpleSetup2(const std::string &output_file, Eigen::VectorXd startV
     {
         out_file << "No solution found" << std::endl;
     }
-
     out_file.close();
+    return len;
+
 }
 
 int getNearest(std::vector<StationTask> stations, Eigen::VectorXd curr)
@@ -267,10 +269,9 @@ int getNearest(std::vector<StationTask> stations, Eigen::VectorXd curr)
     return index;
 }
 
-
-
-int main(int /*argc*/, char ** /*argv*/)
+double doEverythingSeq()
 {
+    double pathLength = 0;
     std::string output_file = "SampleOut.txt";
     if (std::remove(output_file.c_str()) == 0) {
         std::cout << "Deleted existing file: " << output_file << std::endl;
@@ -297,7 +298,8 @@ int main(int /*argc*/, char ** /*argv*/)
     stations.push_back(s2);
 
     StationTask s3;
-    s3.goal << -9.0, 9.0, -8.0;
+
+    s3.goal << -9.0, 9.0, -9.0;
     s3.index = 2;
     stations.push_back(s3);
 
@@ -330,7 +332,7 @@ int main(int /*argc*/, char ** /*argv*/)
         goalVec[1] = stations[firstIndex].goal[1];
         goalVec[2] = stations[firstIndex].goal[2];
 
-        planWithSimpleSetup2(output_file, curr, goalVec);
+        pathLength += planWithSimpleSetup2(output_file, curr, goalVec);
         visited = visited + " -> " + std::to_string(firstIndex);
         curr[0] = stations[firstIndex].goal[0];
         curr[1] = stations[firstIndex].goal[1];
@@ -345,11 +347,21 @@ int main(int /*argc*/, char ** /*argv*/)
             std::cout << "Current location " << curr.transpose() << std::endl;
         }
     }
-    planWithSimpleSetup2(output_file, curr, finalGoal);
+    pathLength += planWithSimpleSetup2(output_file, curr, finalGoal);
 
-        std::cout << std::endl << std::endl;
+    std::cout << std::endl << std::endl;
+    return pathLength;
+}
 
-    //  planWithSimpleSetup2("SampleOut.txt", startVec, goalVec);
-
+int main(int /*argc*/, char ** /*argv*/)
+{
+    std::vector<double> lens;
+    double len = 0.0;
+    for(int i = 0; i < 100; i++)
+    {
+        len += doEverythingSeq();
+        lens.push_back(len);
+    }
+    std::cout << "len " << len/100.0 << std::endl;
     return 0;
 }
